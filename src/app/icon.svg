@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <rect width="64" height="64" rx="14" fill="#14161C" />
+  <rect x="12" y="9" width="40" height="46" rx="6" fill="#1D2028" stroke="#3E4454" stroke-width="1.5" />
+  <rect x="16" y="13" width="32" height="9" rx="2.5" fill="#0D0F14" />
+  <rect x="19" y="16.5" width="4" height="2" rx="1" fill="#FF9F0A" />
+  <rect x="32" y="16.5" width="12" height="2" rx="1" fill="#E4E8F0" />
+  <rect x="16" y="25" width="9" height="7.5" rx="2.2" fill="#383D4A" />
+  <rect x="27.5" y="25" width="9" height="7.5" rx="2.2" fill="#383D4A" />
+  <rect x="39" y="25" width="9" height="7.5" rx="2.2" fill="#383D4A" />
+  <rect x="16" y="34.5" width="9" height="7.5" rx="2.2" fill="#2C303A" />
+  <rect x="27.5" y="34.5" width="9" height="7.5" rx="2.2" fill="#2C303A" />
+  <rect x="16" y="44" width="9" height="7.5" rx="2.2" fill="#2C303A" />
+  <rect x="27.5" y="44" width="9" height="7.5" rx="2.2" fill="#2C303A" />
+  <rect x="39" y="34.5" width="9" height="17" rx="2.2" fill="#FF9F0A" />
+  <rect x="41.2" y="40.5" width="4.6" height="1.5" rx="0.75" fill="#14120E" />
+  <rect x="41.2" y="44" width="4.6" height="1.5" rx="0.75" fill="#14120E" />
+</svg>
+

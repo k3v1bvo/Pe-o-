@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       web_url:
-        description: 'Vercel production URL to wrap inside Android APK (or leave empty for static export)'
-        required: false
-        default: ''
+        description: 'Vercel production URL to load inside the Calculadora Android APK'
+        required: true
+        default: 'https://calc-app-tawny.vercel.app'
 
 jobs:
   build-apk:
@@ -32,12 +32,22 @@ jobs:
           npm ci
           npm install @capacitor/core @capacitor/cli @capacitor/android
 
-      - name: Prepare Android project
+      - name: Prepare Android project with Calculadora icon
+        env:
+          CAP_SERVER_URL: ${{ github.event.inputs.web_url }}
         run: |
           mkdir -p out
-          echo '<!doctype html><html><body><script>window.location.href="${{ github.event.inputs.web_url }}";</script></body></html>' > out/index.html
+          cat <<EOF > out/index.html
+          <!doctype html>
+          <html lang="es">
+          <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Calculadora</title></head>
+          <body style="margin:0;background:#000;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;">
+          <script>window.location.replace("${CAP_SERVER_URL}");</script>
+          </body></html>
+          EOF
           npx cap add android || true
           npx cap sync android
+          cp -r android-icons/res/* android/app/src/main/res/
 
       - name: Build Debug APK
         run: |
@@ -50,4 +60,3 @@ jobs:
         with:
           name: calculadora-android-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
-

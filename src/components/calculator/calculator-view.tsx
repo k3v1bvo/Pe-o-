@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { History, Delete, Globe, ArrowRight, Check, Calculator } from 'lucide-react';
+import { History, Delete, Globe, ArrowRight, Check } from 'lucide-react';
+import { BrandLogo } from '@/components/ui/brand-logo';
 import { useApp } from '@/components/providers/app-provider';
 import { LOCALE_LABELS, type Locale } from '@/i18n/dictionaries';
 
@@ -337,9 +338,7 @@ export function CalculatorView() {
       {/* Clean Web Top Navigation Bar (Desktop & Tablet) */}
       <header className="hidden sm:flex items-center justify-between w-full max-w-4xl mx-auto px-6 pt-5 pb-2 relative z-20">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-zinc-900 border border-white/10 flex items-center justify-center">
-            <Calculator className="w-4 h-4 text-[#ff9f0a]" />
-          </div>
+          <BrandLogo compact size="sm" />
           <div>
             <div className="text-sm font-semibold tracking-tight text-zinc-100">
               {t.app.publicTitle}
