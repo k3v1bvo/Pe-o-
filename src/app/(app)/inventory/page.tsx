@@ -7,8 +7,11 @@ import { useApp } from '@/components/providers/app-provider';
 import {
   addLotPhoto,
   createLot,
+  getConsignments,
+  getGradedBags,
   getLotCosts,
   getLots,
+  getSales,
   getStrains,
   updateLotStatus,
   uploadImageFile,
@@ -17,9 +20,12 @@ import {
 import { formatWeight } from '@/lib/utils';
 import {
   INVENTORY_UNITS,
+  type Consignment,
+  type GradedBag,
   type InventoryLot,
   type LotCost,
   type LotStatus,
+  type Sale,
   type Strain,
 } from '@/types/database';
 
@@ -29,6 +35,9 @@ export default function InventoryPage() {
   const [lots, setLots] = useState<InventoryLot[]>([]);
   const [strains, setStrains] = useState<Strain[]>([]);
   const [lotCosts, setLotCosts] = useState<LotCost[]>([]);
+  const [consignments, setConsignments] = useState<Consignment[]>([]);
+  const [sales, setSales] = useState<Sale[]>([]);
+  const [bags, setBags] = useState<GradedBag[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
 
@@ -48,14 +57,20 @@ export default function InventoryPage() {
 
   const loadData = useCallback(async () => {
     try {
-      const [l, s, c] = await Promise.all([
+      const [l, s, c, cons, sal, b] = await Promise.all([
         getLots(),
         getStrains(),
         isAdmin ? getLotCosts() : Promise.resolve([]),
+        getConsignments(),
+        getSales(),
+        getGradedBags(),
       ]);
       setLots(l);
       setStrains(s);
       setLotCosts(c);
+      setConsignments(cons);
+      setSales(sal);
+      setBags(b);
       if (s.length > 0 && !strainId) {
         setStrainId(s[0].id);
       }
@@ -68,12 +83,22 @@ export default function InventoryPage() {
 
   useEffect(() => {
     let active = true;
-    Promise.all([getLots(), getStrains(), isAdmin ? getLotCosts() : Promise.resolve([])])
-      .then(([l, s, c]) => {
+    Promise.all([
+      getLots(),
+      getStrains(),
+      isAdmin ? getLotCosts() : Promise.resolve([]),
+      getConsignments(),
+      getSales(),
+      getGradedBags(),
+    ])
+      .then(([l, s, c, cons, sal, b]) => {
         if (!active) return;
         setLots(l);
         setStrains(s);
         setLotCosts(c);
+        setConsignments(cons);
+        setSales(sal);
+        setBags(b);
         if (s.length > 0) {
           setStrainId((prev) => prev || s[0].id);
         }
@@ -365,6 +390,20 @@ export default function InventoryPage() {
           lots.map((lot) => {
             const intakeDiff = Number(lot.actual_weight_g) - Number(lot.declared_weight_g);
             const lotCost = isAdmin ? lotCosts.find((c) => c.lot_id === lot.id) : undefined;
+            const consignedG = consignments
+              .filter((c) => c.lot_id === lot.id && c.status !== 'requested')
+              .reduce((acc, c) => acc + Number(c.total_grams), 0);
+            const bulkSoldG = sales
+              .filter((s) => s.lot_id === lot.id && !s.bag_id)
+              .reduce((acc, s) => acc + Number(s.quantity_g), 0);
+            const bagSoldG = bags
+              .filter((b) => b.lot_id === lot.id && b.status === 'sold')
+              .reduce((acc, b) => acc + Number(b.weight_g), 0);
+            const soldG = bulkSoldG + bagSoldG;
+            const availableRealG = Math.max(
+              0,
+              Number(lot.actual_weight_g) - consignedG - soldG
+            );
             return (
               <div
                 key={lot.id}
@@ -409,7 +448,7 @@ export default function InventoryPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-sm">
                   <div className="bg-zinc-950/70 border border-zinc-800/80 rounded-xl p-3">
                     <div className="text-[11px] text-zinc-500">{t.inventory.declaredWeight}</div>
                     <div className="font-mono font-semibold text-zinc-200 mt-0.5">
@@ -421,16 +460,28 @@ export default function InventoryPage() {
                     <div className="font-mono font-semibold text-emerald-400 mt-0.5">
                       {formatWeight(lot.actual_weight_g)}
                     </div>
-                  </div>
-                  <div className="bg-zinc-950/70 border border-zinc-800/80 rounded-xl p-3">
-                    <div className="text-[11px] text-zinc-500">{t.inventory.difference}</div>
                     <div
-                      className={`font-mono font-semibold mt-0.5 ${
-                        intakeDiff < 0 ? 'text-rose-400' : 'text-emerald-300'
+                      className={`text-[10px] font-mono mt-0.5 ${
+                        intakeDiff < 0 ? 'text-rose-400' : 'text-emerald-300/80'
                       }`}
                     >
-                      {intakeDiff >= 0 ? '+' : ''}
+                      Dif: {intakeDiff >= 0 ? '+' : ''}
                       {intakeDiff.toFixed(1)} g
+                    </div>
+                  </div>
+                  <div className="bg-zinc-950/70 border border-emerald-500/25 rounded-xl p-3">
+                    <div className="text-[11px] text-emerald-300/80">Disponible Real</div>
+                    <div className="font-mono font-semibold text-white mt-0.5">
+                      {formatWeight(availableRealG)}
+                    </div>
+                  </div>
+                  <div className="bg-zinc-950/70 border border-zinc-800/80 rounded-xl p-3">
+                    <div className="text-[11px] text-zinc-500">En Concesión / Vendido</div>
+                    <div className="font-mono font-semibold text-sky-300 mt-0.5">
+                      {formatWeight(consignedG + soldG)}
+                    </div>
+                    <div className="text-[10px] text-zinc-500 mt-0.5 tabular-nums">
+                      Conc: {formatWeight(consignedG)} · Vta: {formatWeight(soldG)}
                     </div>
                   </div>
                   <div className="bg-zinc-950/70 border border-zinc-800/80 rounded-xl p-3">

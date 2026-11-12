@@ -105,7 +105,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (profile) {
-      router.replace('/dashboard');
+      router.replace(profile.role === 'consignee' ? '/consignments' : '/dashboard');
     }
   }, [profile, router]);
 

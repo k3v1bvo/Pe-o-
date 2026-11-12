@@ -2,13 +2,14 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Users, UserPlus, Copy, Check, Trash2, Link2 } from 'lucide-react';
+import { Users, UserPlus, Copy, Check, Trash2, Link2, ShieldAlert, Ban, CheckCircle2 } from 'lucide-react';
 import { useApp } from '@/components/providers/app-provider';
 import {
   createInvitation,
   deleteInvitation,
   getInvitations,
   getProfiles,
+  updateProfileActive,
   updateProfileRole,
 } from '@/lib/data-service';
 import type { Invitation, Profile, UserRole } from '@/types/database';
@@ -23,9 +24,10 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
 
   const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState<UserRole>('warehouse');
+  const [inviteRole, setInviteRole] = useState<UserRole>('consignee');
   const [creatingInvite, setCreatingInvite] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState('');
 
   useEffect(() => {
     if (profile && !isAdmin) {
@@ -65,6 +67,7 @@ export default function UsersPage() {
   const handleCreateInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profile) return;
+    setActionError('');
     setCreatingInvite(true);
     try {
       await createInvitation({
@@ -76,6 +79,12 @@ export default function UsersPage() {
       await loadData();
     } catch (err) {
       console.error(err);
+      const msg = err instanceof Error ? err.message : 'No se pudo generar la invitación.';
+      setActionError(
+        msg.includes('invitations_role_check')
+          ? 'Falta aplicar la migración SQL de Supabase para habilitar el rol Concesionario (ver supabase/migrations/20261112_consignee_role_and_security.sql).'
+          : msg
+      );
     } finally {
       setCreatingInvite(false);
     }
@@ -105,6 +114,20 @@ export default function UsersPage() {
           <span>Invitar Nuevo Usuario (Solo por Invitación)</span>
         </div>
 
+        <p className="text-xs text-zinc-400 leading-relaxed">
+          Tú generas un link único de un solo uso (expira en 7 días) y eliges el rol. El usuario
+          abre el enlace, define su <strong className="text-zinc-200">propia contraseña</strong>{' '}
+          (tú nunca la ves) y luego puede cambiarla cuando quiera desde{' '}
+          <strong className="text-zinc-200">Mi Cuenta / Clave</strong>.
+        </p>
+
+        {actionError && (
+          <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
+            <ShieldAlert className="w-4 h-4 shrink-0" />
+            <span>{actionError}</span>
+          </div>
+        )}
+
         <form onSubmit={handleCreateInvite} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <input
             type="email"
@@ -118,8 +141,9 @@ export default function UsersPage() {
             onChange={(e) => setInviteRole(e.target.value as UserRole)}
             className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-white"
           >
-            <option value="warehouse">{t.auth.roleWarehouse}</option>
-            <option value="admin">{t.auth.roleAdmin}</option>
+            <option value="consignee">{t.auth.roleConsignee} (Solo sus concesiones y pedidos)</option>
+            <option value="warehouse">{t.auth.roleWarehouse} (Bodega y pesaje sin costos)</option>
+            <option value="admin">{t.auth.roleAdmin} (Control total y costos)</option>
           </select>
           <button
             type="submit"
@@ -146,7 +170,11 @@ export default function UsersPage() {
                         {inv.token}
                       </span>
                       <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-300">
-                        {inv.role === 'admin' ? t.auth.roleAdmin : t.auth.roleWarehouse}
+                        {inv.role === 'admin'
+                          ? t.auth.roleAdmin
+                          : inv.role === 'consignee'
+                          ? t.auth.roleConsignee
+                          : t.auth.roleWarehouse}
                       </span>
                       <span
                         className={`text-xs px-2 py-0.5 rounded-full ${
@@ -210,35 +238,86 @@ export default function UsersPage() {
               <th className="py-2 pr-4">{t.users.name}</th>
               <th className="py-2 pr-4">{t.users.email}</th>
               <th className="py-2 pr-4">{t.users.role}</th>
+              <th className="py-2 pr-4">Estado</th>
               <th className="py-2 pr-4">{t.users.createdAt}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-800/70">
-            {profiles.map((u) => (
-              <tr key={u.id}>
-                <td className="py-3 pr-4 font-medium text-white flex items-center gap-2">
-                  <Users className="w-4 h-4 text-emerald-400" />
-                  {u.name}
-                </td>
-                <td className="py-3 pr-4 text-zinc-300">{u.email}</td>
-                <td className="py-3 pr-4">
-                  <select
-                    value={u.role}
-                    onChange={async (e) => {
-                      await updateProfileRole(u.id, e.target.value as UserRole);
-                      await loadData();
-                    }}
-                    className="bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1 text-xs text-zinc-200"
-                  >
-                    <option value="admin">{t.auth.roleAdmin}</option>
-                    <option value="warehouse">{t.auth.roleWarehouse}</option>
-                  </select>
-                </td>
-                <td className="py-3 pr-4 text-xs text-zinc-500">
-                  {new Date(u.created_at).toLocaleDateString()}
-                </td>
-              </tr>
-            ))}
+            {profiles.map((u) => {
+              const isActive = u.active !== false;
+              return (
+                <tr key={u.id}>
+                  <td className="py-3 pr-4 font-medium text-white flex items-center gap-2">
+                    <Users className="w-4 h-4 text-emerald-400" />
+                    {u.name}
+                  </td>
+                  <td className="py-3 pr-4 text-zinc-300">{u.email}</td>
+                  <td className="py-3 pr-4">
+                    <select
+                      value={u.role}
+                      onChange={async (e) => {
+                        setActionError('');
+                        try {
+                          await updateProfileRole(u.id, e.target.value as UserRole);
+                          await loadData();
+                        } catch (err) {
+                          setActionError(
+                            err instanceof Error ? err.message : 'Error actualizando rol.'
+                          );
+                        }
+                      }}
+                      className="bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1 text-xs text-zinc-200"
+                    >
+                      <option value="consignee">{t.auth.roleConsignee}</option>
+                      <option value="warehouse">{t.auth.roleWarehouse}</option>
+                      <option value="admin">{t.auth.roleAdmin}</option>
+                    </select>
+                  </td>
+                  <td className="py-3 pr-4">
+                    {u.id === profile?.id ? (
+                      <span className="text-xs text-emerald-400">Activo (tú)</span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setActionError('');
+                          try {
+                            await updateProfileActive(u.id, !isActive);
+                            await loadData();
+                          } catch (err) {
+                            setActionError(
+                              err instanceof Error
+                                ? err.message
+                                : 'Falta aplicar la migración SQL para suspender usuarios.'
+                            );
+                          }
+                        }}
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs border cursor-pointer ${
+                          isActive
+                            ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-300 hover:bg-rose-500/15 hover:border-rose-500/30 hover:text-rose-300'
+                            : 'bg-rose-500/15 border-rose-500/30 text-rose-300 hover:bg-emerald-500/15 hover:border-emerald-500/30 hover:text-emerald-300'
+                        }`}
+                      >
+                        {isActive ? (
+                          <>
+                            <CheckCircle2 className="w-3 h-3" />
+                            <span>Activo</span>
+                          </>
+                        ) : (
+                          <>
+                            <Ban className="w-3 h-3" />
+                            <span>Suspendido</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </td>
+                  <td className="py-3 pr-4 text-xs text-zinc-500">
+                    {new Date(u.created_at).toLocaleDateString()}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

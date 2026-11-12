@@ -24,9 +24,25 @@ import {
   CartesianGrid,
 } from 'recharts';
 import { useApp } from '@/components/providers/app-provider';
-import { getConsignments, getExpenses, getGradedBags, getLots, getSales } from '@/lib/data-service';
+import {
+  getConsignmentPayments,
+  getConsignments,
+  getExpenses,
+  getGradedBags,
+  getLotCosts,
+  getLots,
+  getSales,
+} from '@/lib/data-service';
 import { formatWeight } from '@/lib/utils';
-import type { Consignment, Expense, GradedBag, InventoryLot, Sale } from '@/types/database';
+import type {
+  Consignment,
+  ConsignmentPayment,
+  Expense,
+  GradedBag,
+  InventoryLot,
+  LotCost,
+  Sale,
+} from '@/types/database';
 
 export default function DashboardPage() {
   const { profile, t, formatMoney } = useApp();
@@ -37,23 +53,29 @@ export default function DashboardPage() {
   const [sales, setSales] = useState<Sale[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [consignments, setConsignments] = useState<Consignment[]>([]);
+  const [payments, setPayments] = useState<ConsignmentPayment[]>([]);
+  const [lotCosts, setLotCosts] = useState<LotCost[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
       try {
-        const [l, b, s, e, c] = await Promise.all([
+        const [l, b, s, e, c, p, lc] = await Promise.all([
           getLots(),
           getGradedBags(),
           getSales(),
           getExpenses(),
           getConsignments(),
+          getConsignmentPayments(),
+          isAdmin ? getLotCosts() : Promise.resolve([]),
         ]);
         setLots(l);
         setBags(b);
         setSales(s);
         setExpenses(e);
         setConsignments(c);
+        setPayments(p);
+        setLotCosts(lc);
       } catch (err) {
         console.error(err);
       } finally {
@@ -61,16 +83,42 @@ export default function DashboardPage() {
       }
     }
     load();
-  }, []);
+  }, [isAdmin]);
 
   const stats = useMemo(() => {
     const todayStr = new Date().toISOString().slice(0, 10);
-    const todaySales = sales
+    const todaySalesDirect = sales
       .filter((s) => s.sold_at.slice(0, 10) === todayStr)
       .reduce((acc, s) => acc + Number(s.total_price), 0);
-    const totalRevenue = sales.reduce((acc, s) => acc + Number(s.total_price), 0);
-    const totalExpenses = expenses.reduce((acc, e) => acc + Number(e.amount), 0);
-    const totalWeightG = lots.reduce((acc, l) => acc + Number(l.actual_weight_g), 0);
+    const todayAbonos = payments
+      .filter((p) => p.paid_at.slice(0, 10) === todayStr)
+      .reduce((acc, p) => acc + Number(p.amount), 0);
+    const todaySales = todaySalesDirect + todayAbonos;
+
+    const directSalesTotal = sales.reduce((acc, s) => acc + Number(s.total_price), 0);
+    const consignmentCollected = consignments
+      .filter((c) => c.status !== 'requested')
+      .reduce((acc, c) => acc + Number(c.paid_amount), 0);
+    const totalRevenue = directSalesTotal + consignmentCollected;
+
+    const operatingExpenses = expenses.reduce((acc, e) => acc + Number(e.amount), 0);
+    const inventoryInvestment = isAdmin
+      ? lotCosts.reduce((acc, lc) => acc + Number(lc.total_cost), 0)
+      : 0;
+    const totalExpenses = operatingExpenses + inventoryInvestment;
+
+    const grossReceivedG = lots.reduce((acc, l) => acc + Number(l.actual_weight_g), 0);
+    const consignedG = consignments
+      .filter((c) => c.status !== 'requested')
+      .reduce((acc, c) => acc + Number(c.total_grams), 0);
+    const bulkSoldG = sales
+      .filter((s) => !s.bag_id)
+      .reduce((acc, s) => acc + Number(s.quantity_g), 0);
+    const bagSoldG = bags
+      .filter((b) => b.status === 'sold')
+      .reduce((acc, b) => acc + Number(b.weight_g), 0);
+    const totalWeightG = Math.max(0, grossReceivedG - consignedG - bulkSoldG - bagSoldG);
+
     const totalShrinkageG = lots.reduce((acc, l) => acc + Number(l.shrinkage_g), 0);
     const availableBags = bags.filter((b) => b.status === 'available');
 
@@ -86,19 +134,28 @@ export default function DashboardPage() {
       .reduce((acc, c) => acc + Math.max(0, Number(c.agreed_total) - Number(c.paid_amount)), 0);
     const pendingRequests = consignments.filter((c) => c.status === 'requested').length;
 
+    const netProfit = totalRevenue - totalExpenses;
+    const projectedProfit = netProfit + consignmentOwed;
+
     return {
       todaySales,
+      directSalesTotal,
+      consignmentCollected,
       totalRevenue,
+      operatingExpenses,
+      inventoryInvestment,
       totalExpenses,
-      netProfit: totalRevenue - totalExpenses,
+      netProfit,
+      projectedProfit,
       totalWeightG,
+      grossReceivedG,
       totalShrinkageG,
       availableBagsCount: availableBags.length,
       bagCounts,
       consignmentOwed,
       pendingRequests,
     };
-  }, [lots, bags, sales, expenses, consignments]);
+  }, [lots, bags, sales, expenses, consignments, payments, lotCosts, isAdmin]);
 
   const chartData = useMemo(() => {
     const days: Record<string, { day: string; sales: number; expenses: number }> = {};
@@ -112,12 +169,16 @@ export default function DashboardPage() {
       const key = s.sold_at.slice(0, 10);
       if (days[key]) days[key].sales += Number(s.total_price);
     });
+    payments.forEach((p) => {
+      const key = p.paid_at.slice(0, 10);
+      if (days[key]) days[key].sales += Number(p.amount);
+    });
     expenses.forEach((e) => {
       const key = e.created_at.slice(0, 10);
       if (days[key]) days[key].expenses += Number(e.amount);
     });
     return Object.values(days);
-  }, [sales, expenses]);
+  }, [sales, payments, expenses]);
 
   if (loading) {
     return (
@@ -270,7 +331,7 @@ export default function DashboardPage() {
 
         <div className="obsidian-card rounded-2xl p-5">
           <div className="flex items-center justify-between text-zinc-400 text-xs">
-            <span>{t.dashboard.totalRevenue}</span>
+            <span>{t.dashboard.totalRevenue} (Cobrado)</span>
             <div className="w-8 h-8 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center">
               <ShoppingBag className="w-4 h-4 text-teal-400" />
             </div>
@@ -278,11 +339,15 @@ export default function DashboardPage() {
           <div className="text-2xl font-semibold tabular-nums text-white mt-3">
             {formatMoney(stats.totalRevenue)}
           </div>
+          <p className="text-[11px] text-zinc-500 mt-1 tabular-nums">
+            Ventas: {formatMoney(stats.directSalesTotal)} · Abonos conc.:{' '}
+            {formatMoney(stats.consignmentCollected)}
+          </p>
         </div>
 
         <div className="obsidian-card rounded-2xl p-5">
           <div className="flex items-center justify-between text-zinc-400 text-xs">
-            <span>{t.dashboard.totalExpenses}</span>
+            <span>{t.dashboard.totalExpenses} + Inversión</span>
             <div className="w-8 h-8 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">
               <Receipt className="w-4 h-4 text-rose-400" />
             </div>
@@ -290,11 +355,15 @@ export default function DashboardPage() {
           <div className="text-2xl font-semibold tabular-nums text-rose-300 mt-3">
             {formatMoney(stats.totalExpenses)}
           </div>
+          <p className="text-[11px] text-zinc-500 mt-1 tabular-nums">
+            Lotes: {formatMoney(stats.inventoryInvestment)} · Gastos:{' '}
+            {formatMoney(stats.operatingExpenses)}
+          </p>
         </div>
 
         <div className="obsidian-card rounded-2xl p-5 !border-emerald-500/30 bg-gradient-to-br from-emerald-500/[0.08] via-[#0d1410] to-[#0a0f0c]">
           <div className="flex items-center justify-between text-emerald-300/80 text-xs font-medium">
-            <span>{t.dashboard.netProfit}</span>
+            <span>{t.dashboard.netProfit} (Caja Real)</span>
             <div className="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-400/30 flex items-center justify-center">
               <TrendingUp className="w-4 h-4 text-emerald-300" />
             </div>
@@ -306,6 +375,9 @@ export default function DashboardPage() {
           >
             {formatMoney(stats.netProfit)}
           </div>
+          <p className="text-[11px] text-emerald-300/70 mt-1 tabular-nums">
+            Al cobrar fiado: {formatMoney(stats.projectedProfit)}
+          </p>
         </div>
 
         <div className="obsidian-card rounded-2xl p-5">
@@ -318,6 +390,9 @@ export default function DashboardPage() {
           <div className="text-2xl font-semibold tabular-nums text-white mt-3">
             {formatWeight(stats.totalWeightG)}
           </div>
+          <p className="text-[11px] text-zinc-500 mt-1 tabular-nums">
+            Ingresado: {formatWeight(stats.grossReceivedG)}
+          </p>
         </div>
 
         <div className="obsidian-card rounded-2xl p-5">

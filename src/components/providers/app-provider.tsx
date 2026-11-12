@@ -52,11 +52,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const setDemoUser = useCallback((role: UserRole) => {
+    const idMap: Record<UserRole, string> = {
+      admin: 'demo-admin-id',
+      warehouse: 'demo-warehouse-id',
+      consignee: 'demo-consignee-id',
+    };
+    const emailMap: Record<UserRole, string> = {
+      admin: 'admin@local.test',
+      warehouse: 'almacen@local.test',
+      consignee: 'socio@local.test',
+    };
+    const nameMap: Record<UserRole, string> = {
+      admin: 'Admin (Demo)',
+      warehouse: 'Almacenista (Demo)',
+      consignee: 'Concesionario (Demo)',
+    };
     const demoProfile: Profile = {
-      id: role === 'admin' ? 'demo-admin-id' : 'demo-warehouse-id',
-      email: role === 'admin' ? 'admin@local.test' : 'almacen@local.test',
-      name: role === 'admin' ? 'Admin (Demo)' : 'Almacenista (Demo)',
+      id: idMap[role],
+      email: emailMap[role],
+      name: nameMap[role],
       role,
+      active: true,
       created_at: new Date().toISOString(),
     };
     setProfile(demoProfile);
@@ -101,13 +117,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         .single();
 
       if (prof) {
-        setProfile(prof as Profile);
+        const typed = prof as Profile;
+        if (typed.active === false) {
+          await supabase.auth.signOut();
+          setProfile(null);
+          return;
+        }
+        setProfile(typed);
       } else {
         setProfile({
           id: user.id,
           email: user.email || '',
           name: user.user_metadata?.name || 'Usuario',
-          role: (user.user_metadata?.role as UserRole) || 'warehouse',
+          role: 'consignee',
+          active: true,
           created_at: user.created_at,
         });
       }

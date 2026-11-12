@@ -18,11 +18,12 @@ import {
 import { createClient } from '@/lib/supabase/client';
 import { useApp } from '@/components/providers/app-provider';
 import { BrandLogo } from '@/components/ui/brand-logo';
+import type { UserRole } from '@/types/database';
 
 interface InviteCheck {
   valid: boolean;
   reason?: string;
-  role?: 'admin' | 'warehouse';
+  role?: UserRole;
   email?: string | null;
 }
 
@@ -97,7 +98,7 @@ function InviteFormInner() {
 
       if (data.session) {
         await refreshProfile();
-        router.push('/dashboard');
+        router.push(inviteInfo?.role === 'consignee' ? '/consignments' : '/dashboard');
       } else {
         setSuccessMsg(
           'Cuenta creada. Revisa tu correo para confirmar o inicia sesión en /login.'
@@ -150,7 +151,13 @@ function InviteFormInner() {
         <BrandLogo size="sm" />
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/25 text-emerald-300 text-xs font-medium">
           <UserPlus className="w-3.5 h-3.5" />
-          <span>{inviteInfo.role === 'admin' ? t.auth.roleAdmin : t.auth.roleWarehouse}</span>
+          <span>
+            {inviteInfo.role === 'admin'
+              ? t.auth.roleAdmin
+              : inviteInfo.role === 'consignee'
+              ? t.auth.roleConsignee
+              : t.auth.roleWarehouse}
+          </span>
         </div>
       </div>
 

@@ -172,6 +172,15 @@ function getInitialDemoDb(): DemoDb {
         email: 'almacen@local.test',
         name: 'Almacenista (Demo)',
         role: 'warehouse',
+        active: true,
+        created_at: now,
+      },
+      {
+        id: 'demo-consignee-id',
+        email: 'socio@local.test',
+        name: 'Concesionario (Demo)',
+        role: 'consignee',
+        active: true,
         created_at: now,
       },
     ],
@@ -716,6 +725,29 @@ export async function updateProfileRole(id: string, role: UserRole): Promise<voi
   if (error) throw error;
 }
 
+export async function updateProfileActive(id: string, active: boolean): Promise<void> {
+  if (!isSupabaseConfigured()) {
+    const db = readDemoDb();
+    db.profiles = db.profiles.map((p) => (p.id === id ? { ...p, active } : p));
+    writeDemoDb(db);
+    return;
+  }
+  const supabase = createClient();
+  const { error } = await supabase.from('profiles').update({ active }).eq('id', id);
+  if (error) throw error;
+}
+
+export async function updateOwnProfileName(name: string): Promise<void> {
+  const trimmed = name.trim();
+  if (!trimmed) return;
+  if (!isSupabaseConfigured()) {
+    return;
+  }
+  const supabase = createClient();
+  const { error } = await supabase.rpc('update_own_name', { new_name: trimmed });
+  if (error) throw error;
+}
+
 // ==========================================
 // INVITATIONS (Invite-only user creation)
 // ==========================================
@@ -1195,5 +1227,37 @@ export async function addConsignmentPayment(input: {
     .single();
   if (error) throw error;
   return data as ConsignmentPayment;
+}
+
+export async function deleteConsignmentPayment(
+  paymentId: string,
+  consignmentId: string
+): Promise<void> {
+  if (!isSupabaseConfigured()) {
+    const db = readDemoDb();
+    const nextPayments = (db.consignmentPayments ?? []).filter((p) => p.id !== paymentId);
+    db.consignmentPayments = nextPayments;
+    const totalPaid = nextPayments
+      .filter((p) => p.consignment_id === consignmentId)
+      .reduce((acc, p) => acc + Number(p.amount), 0);
+    db.consignments = (db.consignments ?? []).map((c) => {
+      if (c.id !== consignmentId) return c;
+      const status =
+        c.status === 'requested'
+          ? 'requested'
+          : c.agreed_total > 0 && totalPaid >= c.agreed_total
+          ? 'paid'
+          : totalPaid > 0
+          ? 'partial'
+          : 'pending';
+      return { ...c, paid_amount: totalPaid, status };
+    });
+    writeDemoDb(db);
+    return;
+  }
+
+  const supabase = createClient();
+  const { error } = await supabase.from('consignment_payments').delete().eq('id', paymentId);
+  if (error) throw error;
 }
 

@@ -46,6 +46,7 @@ export interface Dictionary {
     invalidCredentials: string;
     roleAdmin: string;
     roleWarehouse: string;
+    roleConsignee: string;
     demoAdminBtn: string;
     demoWarehouseBtn: string;
   };
@@ -60,6 +61,7 @@ export interface Dictionary {
     photos: string;
     users: string;
     settings: string;
+    account: string;
     lockCalculator: string;
   };
   units: {
@@ -241,6 +243,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       invalidCredentials: 'Credenciales inválidas',
       roleAdmin: 'Administrador',
       roleWarehouse: 'Almacenista',
+      roleConsignee: 'Concesionario',
       demoAdminBtn: 'Probar como Admin (Demo)',
       demoWarehouseBtn: 'Probar como Almacenista (Demo)',
     },
@@ -255,6 +258,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       photos: 'Galería de Pesaje',
       users: 'Usuarios',
       settings: 'Configuración',
+      account: 'Mi Cuenta / Clave',
       lockCalculator: 'Modo Calculadora',
     },
     units: {
@@ -434,6 +438,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       invalidCredentials: 'Invalid credentials',
       roleAdmin: 'Administrator',
       roleWarehouse: 'Warehouse Staff',
+      roleConsignee: 'Consignee',
       demoAdminBtn: 'Try as Admin (Demo)',
       demoWarehouseBtn: 'Try as Warehouse (Demo)',
     },
@@ -448,6 +453,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       photos: 'Scale Photos',
       users: 'Users',
       settings: 'Settings',
+      account: 'My Account / Password',
       lockCalculator: 'Calculator Mode',
     },
     units: {
@@ -627,6 +633,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       invalidCredentials: 'Credenciais inválidas',
       roleAdmin: 'Administrador',
       roleWarehouse: 'Estoque',
+      roleConsignee: 'Consignatário',
       demoAdminBtn: 'Testar como Admin (Demo)',
       demoWarehouseBtn: 'Testar como Estoque (Demo)',
     },
@@ -641,6 +648,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       photos: 'Fotos da Balança',
       users: 'Usuários',
       settings: 'Configurações',
+      account: 'Minha Conta / Senha',
       lockCalculator: 'Modo Calculadora',
     },
     units: {
@@ -820,6 +828,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       invalidCredentials: 'Identifiants invalides',
       roleAdmin: 'Administrateur',
       roleWarehouse: 'Magasinier',
+      roleConsignee: 'Consignataire',
       demoAdminBtn: 'Tester Admin (Démo)',
       demoWarehouseBtn: 'Tester Magasinier (Démo)',
     },
@@ -834,6 +843,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       photos: 'Photos Balance',
       users: 'Utilisateurs',
       settings: 'Paramètres',
+      account: 'Mon Compte / Mot de passe',
       lockCalculator: 'Mode Calculatrice',
     },
     units: {

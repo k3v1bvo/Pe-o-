@@ -12,6 +12,7 @@ const PROTECTED_PREFIXES = [
   '/photos',
   '/users',
   '/settings',
+  '/account',
 ];
 
 export async function updateSession(request: NextRequest) {

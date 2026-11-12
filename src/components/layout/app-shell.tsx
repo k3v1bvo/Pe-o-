@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -14,6 +14,7 @@ import {
   Camera,
   Users,
   Settings,
+  KeyRound,
   Calculator,
   LogOut,
   Menu,
@@ -31,7 +32,10 @@ interface NavItem {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   adminOnly?: boolean;
+  staffOnly?: boolean;
 }
+
+const CONSIGNEE_ALLOWED_PATHS = ['/consignments', '/account'];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -40,22 +44,39 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const isAdmin = profile?.role === 'admin';
+  const isConsignee = profile?.role === 'consignee';
+
+  useEffect(() => {
+    if (isConsignee && !CONSIGNEE_ALLOWED_PATHS.some((p) => pathname.startsWith(p))) {
+      router.replace('/consignments');
+    }
+  }, [isConsignee, pathname, router]);
 
   const navItems: NavItem[] = [
-    { href: '/dashboard', label: t.nav.dashboard, icon: LayoutDashboard },
-    { href: '/inventory', label: t.nav.inventory, icon: Package },
-    { href: '/grading', label: t.nav.grading, icon: Scale },
-    { href: '/sales', label: t.nav.sales, icon: ShoppingBag },
+    { href: '/dashboard', label: t.nav.dashboard, icon: LayoutDashboard, staffOnly: true },
+    { href: '/inventory', label: t.nav.inventory, icon: Package, staffOnly: true },
+    { href: '/grading', label: t.nav.grading, icon: Scale, staffOnly: true },
+    { href: '/sales', label: t.nav.sales, icon: ShoppingBag, staffOnly: true },
     { href: '/consignments', label: t.nav.consignments, icon: HandCoins },
     { href: '/pricing', label: t.nav.pricing, icon: Tags, adminOnly: true },
-    { href: '/expenses', label: t.nav.expenses, icon: Receipt },
-    { href: '/photos', label: t.nav.photos, icon: Camera },
+    { href: '/expenses', label: t.nav.expenses, icon: Receipt, staffOnly: true },
+    { href: '/photos', label: t.nav.photos, icon: Camera, staffOnly: true },
     { href: '/users', label: t.nav.users, icon: Users, adminOnly: true },
     { href: '/settings', label: t.nav.settings, icon: Settings, adminOnly: true },
+    { href: '/account', label: t.nav.account, icon: KeyRound },
   ];
 
-  const visibleNav = navItems.filter((item) => !item.adminOnly || isAdmin);
+  const visibleNav = navItems.filter((item) => {
+    if (item.adminOnly && !isAdmin) return false;
+    if (item.staffOnly && isConsignee) return false;
+    return true;
+  });
   const currentTitle = visibleNav.find((item) => item.href === pathname)?.label || 'GreenScale';
+  const roleLabel = isAdmin
+    ? t.auth.roleAdmin
+    : isConsignee
+    ? t.auth.roleConsignee
+    : t.auth.roleWarehouse;
 
   const handleLockToCalculator = async () => {
     await signOut();
@@ -82,18 +103,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
             isAdmin
               ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'
+              : isConsignee
+              ? 'bg-sky-500/15 text-sky-400 border border-sky-500/25'
               : 'bg-amber-500/15 text-amber-400 border border-amber-500/25'
           }`}
         >
-          {isAdmin ? <Shield className="w-4 h-4" /> : <Warehouse className="w-4 h-4" />}
+          {isAdmin ? (
+            <Shield className="w-4 h-4" />
+          ) : isConsignee ? (
+            <HandCoins className="w-4 h-4" />
+          ) : (
+            <Warehouse className="w-4 h-4" />
+          )}
         </div>
         <div className="min-w-0">
           <div className="text-xs font-medium text-zinc-100 truncate">
-            {profile?.name || profile?.email || (isAdmin ? t.auth.roleAdmin : t.auth.roleWarehouse)}
+            {profile?.name || profile?.email || roleLabel}
           </div>
-          <div className="text-[11px] text-zinc-400 truncate">
-            {isAdmin ? t.auth.roleAdmin : t.auth.roleWarehouse}
-          </div>
+          <div className="text-[11px] text-zinc-400 truncate">{roleLabel}</div>
         </div>
       </div>
 

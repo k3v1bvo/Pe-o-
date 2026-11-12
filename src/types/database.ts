@@ -1,10 +1,11 @@
-export type UserRole = 'admin' | 'warehouse';
+export type UserRole = 'admin' | 'warehouse' | 'consignee';
 
 export interface Profile {
   id: string;
   email: string;
   role: UserRole;
   name: string;
+  active?: boolean;
   created_at: string;
 }
 

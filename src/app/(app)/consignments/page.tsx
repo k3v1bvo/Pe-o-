@@ -20,6 +20,7 @@ import {
   approveConsignmentRequest,
   createConsignment,
   deleteConsignment,
+  deleteConsignmentPayment,
   getConsignmentAdminCosts,
   getConsignmentPayments,
   getConsignments,
@@ -145,11 +146,14 @@ export default function ConsignmentsPage() {
         setReqStrainId((prev) => prev || s[0].id);
       }
       if (isAdmin && profs.length > 0) {
-        const warehouseUser = profs.find((u) => u.role === 'warehouse') || profs[0];
+        const preferred =
+          profs.find((u) => u.role === 'consignee') ||
+          profs.find((u) => u.role === 'warehouse') ||
+          profs[0];
         setConsigneeId((prev) => {
           if (!prev) {
-            setConsigneeName(warehouseUser.name || warehouseUser.email);
-            return warehouseUser.id;
+            setConsigneeName(preferred.name || preferred.email);
+            return preferred.id;
           }
           return prev;
         });
@@ -269,18 +273,42 @@ export default function ConsignmentsPage() {
     };
   }, [consignments, adminCosts, isAdmin]);
 
+  const [filterPerson, setFilterPerson] = useState<string>('all');
+
+  const consigneeSummaries = useMemo(() => {
+    if (!isAdmin) return [];
+    const map = new Map<string, { name: string; agreed: number; paid: number; owed: number }>();
+    for (const c of consignments) {
+      if (c.status === 'requested') continue;
+      const key = c.consignee_name || 'Sin nombre';
+      const cur = map.get(key) || { name: key, agreed: 0, paid: 0, owed: 0 };
+      const agreed = Number(c.agreed_total);
+      const paid = Number(c.paid_amount);
+      cur.agreed += agreed;
+      cur.paid += paid;
+      cur.owed += Math.max(0, agreed - paid);
+      map.set(key, cur);
+    }
+    return Array.from(map.values()).sort((a, b) => b.owed - a.owed);
+  }, [consignments, isAdmin]);
+
   const filteredList = useMemo(() => {
+    const byPerson =
+      filterPerson === 'all'
+        ? consignments
+        : consignments.filter((c) => (c.consignee_name || 'Sin nombre') === filterPerson);
+
     switch (filterTab) {
       case 'open':
-        return consignments.filter((c) => c.status === 'pending' || c.status === 'partial');
+        return byPerson.filter((c) => c.status === 'pending' || c.status === 'partial');
       case 'paid':
-        return consignments.filter((c) => c.status === 'paid');
+        return byPerson.filter((c) => c.status === 'paid');
       case 'requested':
-        return consignments.filter((c) => c.status === 'requested');
+        return byPerson.filter((c) => c.status === 'requested');
       default:
-        return consignments;
+        return byPerson;
     }
-  }, [consignments, filterTab]);
+  }, [consignments, filterTab, filterPerson]);
 
   const handleGiveSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -362,10 +390,19 @@ export default function ConsignmentsPage() {
   const handleAddPayment = async (e: React.FormEvent, item: Consignment) => {
     e.preventDefault();
     if (!profile || !isAdmin) return;
+    setErrorMsg('');
+    const amt = parseFloat(payAmount);
+    const remaining = Math.max(0, Number(item.agreed_total) - Number(item.paid_amount));
+    if (!Number.isFinite(amt) || amt <= 0) return;
+    if (remaining > 0 && amt > remaining + 0.01) {
+      setErrorMsg(
+        `El abono (${formatMoney(amt)}) supera el saldo pendiente (${formatMoney(remaining)}).`
+      );
+      return;
+    }
+
     setSubmittingPay(true);
     try {
-      const amt = parseFloat(payAmount);
-      if (!Number.isFinite(amt) || amt <= 0) return;
       await addConsignmentPayment({
         consignment_id: item.id,
         amount: amt,
@@ -814,6 +851,53 @@ export default function ConsignmentsPage() {
         </form>
       )}
 
+      {/* Admin: Per-Person Balance Breakdown */}
+      {isAdmin && consigneeSummaries.length > 0 && (
+        <div className="obsidian-card rounded-2xl p-4 space-y-2.5">
+          <div className="flex items-center justify-between text-xs text-zinc-400">
+            <span className="font-medium text-zinc-200">Cuentas por Cobrar por Persona</span>
+            {filterPerson !== 'all' && (
+              <button
+                type="button"
+                onClick={() => setFilterPerson('all')}
+                className="text-emerald-400 hover:text-emerald-300 cursor-pointer"
+              >
+                Ver todas
+              </button>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {consigneeSummaries.map((person) => {
+              const selected = filterPerson === person.name;
+              return (
+                <button
+                  key={person.name}
+                  type="button"
+                  onClick={() => setFilterPerson(selected ? 'all' : person.name)}
+                  className={`px-3 py-2 rounded-xl border text-left text-xs transition-colors cursor-pointer ${
+                    selected
+                      ? 'bg-emerald-500/15 border-emerald-400/50 text-white'
+                      : 'bg-white/[0.025] border-white/[0.08] text-zinc-300 hover:border-white/20'
+                  }`}
+                >
+                  <div className="font-medium">{person.name}</div>
+                  <div className="tabular-nums mt-0.5">
+                    {person.owed > 0 ? (
+                      <span className="text-amber-300 font-semibold">
+                        Debe {formatMoney(person.owed)}
+                      </span>
+                    ) : (
+                      <span className="text-emerald-400 font-semibold">Saldado</span>
+                    )}
+                    <span className="text-zinc-500"> / {formatMoney(person.agreed)}</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Filter Tabs */}
       <div className="flex flex-wrap gap-2">
         {(
@@ -1137,16 +1221,33 @@ export default function ConsignmentsPage() {
                           itemPayments.map((p) => (
                             <div
                               key={p.id}
-                              className="flex items-center justify-between text-xs py-1 text-zinc-300"
+                              className="flex items-center justify-between text-xs py-1 text-zinc-300 gap-2"
                             >
-                              <div className="flex items-center gap-2">
-                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                              <div className="flex items-center gap-2 min-w-0">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                                 <span>{new Date(p.paid_at).toLocaleString()}</span>
-                                {p.note && <span className="text-zinc-500">· {p.note}</span>}
+                                {p.note && <span className="text-zinc-500 truncate">· {p.note}</span>}
                               </div>
-                              <span className="font-semibold tabular-nums text-emerald-400">
-                                +{formatMoney(p.amount)}
-                              </span>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <span className="font-semibold tabular-nums text-emerald-400">
+                                  +{formatMoney(p.amount)}
+                                </span>
+                                {isAdmin && (
+                                  <button
+                                    type="button"
+                                    title="Eliminar abono"
+                                    onClick={async () => {
+                                      if (!confirm('¿Eliminar este abono? Se recalculará el saldo.'))
+                                        return;
+                                      await deleteConsignmentPayment(p.id, item.id);
+                                      await loadData();
+                                    }}
+                                    className="text-zinc-600 hover:text-rose-400 cursor-pointer"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           ))
                         )}
