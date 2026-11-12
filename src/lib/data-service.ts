@@ -371,6 +371,40 @@ export async function updateLotStatus(id: string, status: LotStatus): Promise<vo
   if (error) throw error;
 }
 
+export async function closeLotWithSpill(params: {
+  id: string;
+  spillWeightG: number;
+  theoreticalRemainingG: number;
+  currentShrinkageG: number;
+  existingNotes?: string | null;
+}): Promise<void> {
+  const finalShrinkage = Math.max(0, Number((params.theoreticalRemainingG - params.spillWeightG).toFixed(2)));
+  const updatedShrinkage = Number((params.currentShrinkageG + finalShrinkage).toFixed(2));
+  const spillNote = `Cierre de lote · Derrame pesado: ${params.spillWeightG}g · Merma final: ${finalShrinkage}g`;
+  const nextNotes = params.existingNotes ? `${params.existingNotes} | ${spillNote}` : spillNote;
+
+  if (!isSupabaseConfigured()) {
+    const db = readDemoDb();
+    db.lots = db.lots.map((l) =>
+      l.id === params.id
+        ? { ...l, status: 'sold_out', shrinkage_g: updatedShrinkage, notes: nextNotes }
+        : l
+    );
+    writeDemoDb(db);
+    return;
+  }
+  const supabase = createClient();
+  const { error } = await supabase
+    .from('inventory_lots')
+    .update({
+      status: 'sold_out',
+      shrinkage_g: updatedShrinkage,
+      notes: nextNotes,
+    })
+    .eq('id', params.id);
+  if (error) throw error;
+}
+
 export async function getLotPhotos(): Promise<LotPhoto[]> {
   if (!isSupabaseConfigured()) {
     return readDemoDb().photos;

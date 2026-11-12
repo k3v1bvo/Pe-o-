@@ -75,7 +75,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       href: '/sales',
       label: t.nav.sales,
       icon: ShoppingBag,
-      allowedRoles: ['admin', 'seller'],
+      allowedRoles: ['admin', 'warehouse', 'seller'],
     },
     {
       href: '/consignments',

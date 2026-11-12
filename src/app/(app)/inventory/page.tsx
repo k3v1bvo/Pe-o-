@@ -6,6 +6,7 @@ import { Plus, Camera, Package, Scale, Upload, X, Lock, Search } from 'lucide-re
 import { useApp } from '@/components/providers/app-provider';
 import {
   addLotPhoto,
+  closeLotWithSpill,
   createLot,
   getConsignments,
   getGradedBags,
@@ -55,6 +56,9 @@ export default function InventoryPage() {
   // Add photo to existing lot
   const [uploadingLotId, setUploadingLotId] = useState<string | null>(null);
   const [zoomPhoto, setZoomPhoto] = useState<string | null>(null);
+  const [closingLotId, setClosingLotId] = useState<string | null>(null);
+  const [spillWeightG, setSpillWeightG] = useState('0');
+  const [closingBusy, setClosingBusy] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
@@ -575,8 +579,83 @@ export default function InventoryPage() {
                         </option>
                       ))}
                     </select>
+                    {lot.status !== 'sold_out' && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setClosingLotId(closingLotId === lot.id ? null : lot.id);
+                          setSpillWeightG('0');
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-xs font-medium text-amber-300 cursor-pointer transition-colors"
+                      >
+                        Pesar derrame / Cerrar
+                      </button>
+                    )}
                   </div>
                 </div>
+
+                {closingLotId === lot.id && (
+                  <div className="p-4 rounded-xl bg-amber-500/[0.06] border border-amber-500/25 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-amber-200">
+                        Cierre de Lote · Cuadre de Derrame y Merma Final
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setClosingLotId(null)}
+                        className="text-xs text-zinc-400 hover:text-white cursor-pointer"
+                      >
+                        {t.app.cancel}
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-zinc-400">
+                      Teórico restante en sistema: <strong className="font-mono text-white">{availableRealG.toFixed(1)} g</strong>.
+                      Pesa lo que sobró en derrame/polvo al acabarse el lote para calcular la merma final real.
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                      <div>
+                        <label className="block text-[11px] text-zinc-300 mb-1">Derrame pesado (g)</label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          value={spillWeightG}
+                          onChange={(e) => setSpillWeightG(e.target.value)}
+                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white font-mono"
+                        />
+                      </div>
+                      <div className="text-xs text-zinc-300 pb-2">
+                        Merma final detectada:{' '}
+                        <strong className="font-mono text-amber-300">
+                          {Math.max(0, availableRealG - (parseFloat(spillWeightG) || 0)).toFixed(1)} g
+                        </strong>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={closingBusy}
+                        onClick={async () => {
+                          setClosingBusy(true);
+                          try {
+                            await closeLotWithSpill({
+                              id: lot.id,
+                              spillWeightG: parseFloat(spillWeightG) || 0,
+                              theoreticalRemainingG: availableRealG,
+                              currentShrinkageG: Number(lot.shrinkage_g),
+                              existingNotes: lot.notes,
+                            });
+                            setClosingLotId(null);
+                            await loadData();
+                          } finally {
+                            setClosingBusy(false);
+                          }
+                        }}
+                        className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold text-xs cursor-pointer disabled:opacity-60"
+                      >
+                        {closingBusy ? t.app.loading : 'Confirmar Cierre y Merma'}
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-sm">
                   <div className="bg-zinc-950/70 border border-zinc-800/80 rounded-xl p-3">
