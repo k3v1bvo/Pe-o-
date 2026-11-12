@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { History, Delete, Globe, ArrowRight, Check } from 'lucide-react';
+import { History, Delete, Globe, ArrowRight, Check, Calculator } from 'lucide-react';
 import { useApp } from '@/components/providers/app-provider';
 import { LOCALE_LABELS, type Locale } from '@/i18n/dictionaries';
 
@@ -298,211 +298,313 @@ export function CalculatorView() {
 
   const quote = UNLOCK_QUOTES[locale];
 
-  return (
-    <div className="min-h-[100dvh] w-full bg-black sm:bg-[#0b0b0d] text-white flex items-stretch sm:items-center justify-center sm:p-4 relative overflow-hidden">
-      {/* Calculator Chassis — full-screen native on mobile, precision handset frame on desktop */}
-      <div
-        className="w-full max-w-[400px] mx-auto sm:max-w-[368px] h-[100dvh] sm:h-auto sm:min-h-[min(660px,88dvh)] sm:max-h-[92dvh] bg-black sm:rounded-[44px] sm:ring-1 sm:ring-white/[0.12] sm:shadow-[0_32px_90px_rgba(0,0,0,0.9)] flex flex-col justify-between px-4 pt-3 pb-4 sm:px-6 sm:pt-5 sm:pb-6 relative z-10"
-        onClick={() => {
-          if (showLangMenu) setShowLangMenu(false);
-        }}
-      >
-        {/* Minimal Native Top Bar */}
-        <div className="flex items-center justify-between h-10 relative">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setShowHistory((v) => !v);
-                setShowLangMenu(false);
-              }}
-              aria-label={t.calc.history}
-              title={t.calc.history}
-              className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors cursor-pointer ${
-                showHistory
-                  ? 'bg-white/15 text-[#ff9f0a]'
-                  : 'text-zinc-400 hover:text-white hover:bg-white/10'
-              }`}
-            >
-              <History className="w-[18px] h-[18px]" />
-            </button>
-            <span className="text-[13px] font-medium tracking-tight text-zinc-400">
-              {t.app.publicTitle}
-            </span>
-          </div>
-
-          {/* Discreet Language Popover Trigger */}
-          <div
-            className="relative"
-            onClick={(e) => {
-              e.stopPropagation();
+  const renderHistoryItems = (closeDrawer: boolean) =>
+    history.length === 0 ? (
+      <div className="flex-1 flex items-center justify-center text-xs text-zinc-500 text-center px-4">
+        {t.calc.emptyHistory}
+      </div>
+    ) : (
+      <div className="flex-1 overflow-y-auto py-2 space-y-1.5 pr-1">
+        {history.map((item, idx) => (
+          <button
+            key={idx}
+            type="button"
+            onClick={() => {
+              setDisplay(item.result);
+              if (closeDrawer) setShowHistory(false);
             }}
+            className="w-full text-right px-3 py-2 rounded-xl bg-white/[0.02] hover:bg-white/[0.07] border border-transparent hover:border-white/[0.08] transition-colors cursor-pointer"
           >
-            <button
-              type="button"
-              onClick={() => setShowLangMenu((v) => !v)}
-              aria-label="Language"
-              className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors cursor-pointer ${
-                showLangMenu
-                  ? 'bg-white/15 text-white'
-                  : 'text-zinc-500 hover:text-zinc-200 hover:bg-white/10'
-              }`}
-            >
-              <Globe className="w-[17px] h-[17px]" />
-            </button>
+            <div className="text-[11px] text-zinc-500 tabular-nums">{item.expression} =</div>
+            <div className="text-base font-medium text-zinc-100 tabular-nums">
+              {formatDisplayText(item.result, t.calc.error)}
+            </div>
+          </button>
+        ))}
+      </div>
+    );
 
-            {showLangMenu && (
-              <div className="absolute right-0 mt-1.5 w-40 rounded-2xl bg-[#1c1c1e] border border-white/10 shadow-2xl py-1.5 z-30">
-                {(Object.keys(LOCALE_LABELS) as Locale[]).map((code) => (
-                  <button
-                    key={code}
-                    type="button"
-                    onClick={() => {
-                      setLocale(code);
-                      setShowLangMenu(false);
-                    }}
-                    className="w-full px-3.5 py-2 text-left text-xs flex items-center justify-between text-zinc-200 hover:bg-white/10 transition-colors cursor-pointer"
-                  >
-                    <span>{LOCALE_LABELS[code]}</span>
-                    {locale === code && <Check className="w-3.5 h-3.5 text-[#ff9f0a]" />}
-                  </button>
-                ))}
-              </div>
-            )}
+  return (
+    <div
+      className="min-h-[100dvh] w-full bg-black sm:bg-[#0b0c0e] text-white flex flex-col justify-between relative overflow-hidden"
+      onClick={() => {
+        if (showLangMenu) setShowLangMenu(false);
+      }}
+    >
+      {/* Subtle neutral web studio backdrop (desktop/tablet only) */}
+      <div className="hidden sm:block absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.045),_transparent_55%)] pointer-events-none" />
+
+      {/* Clean Web Top Navigation Bar (Desktop & Tablet) */}
+      <header className="hidden sm:flex items-center justify-between w-full max-w-4xl mx-auto px-6 pt-5 pb-2 relative z-20">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-xl bg-zinc-900 border border-white/10 flex items-center justify-center">
+            <Calculator className="w-4 h-4 text-[#ff9f0a]" />
+          </div>
+          <div>
+            <div className="text-sm font-semibold tracking-tight text-zinc-100">
+              {t.app.publicTitle}
+            </div>
+            <div className="text-[11px] text-zinc-500">{t.calc.standard}</div>
           </div>
         </div>
 
-        {/* Display / History Container */}
-        <div className="flex-1 flex flex-col justify-end relative min-h-[104px] py-2 sm:py-4">
-          {showHistory ? (
-            <div className="absolute inset-0 bg-[#111113]/95 rounded-3xl border border-white/[0.08] p-4 flex flex-col justify-between z-20">
-              <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
-                <span className="text-xs font-medium text-zinc-400">{t.calc.history}</span>
-                {history.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setHistory([])}
-                    className="text-xs font-medium text-[#ff9f0a] hover:text-[#ffb340] cursor-pointer"
-                  >
-                    {t.calc.clearHistory}
-                  </button>
-                )}
-              </div>
-
-              {history.length === 0 ? (
-                <div className="flex-1 flex items-center justify-center text-xs text-zinc-500">
-                  {t.calc.emptyHistory}
-                </div>
-              ) : (
-                <div className="flex-1 overflow-y-auto py-2 space-y-1">
-                  {history.map((item, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => {
-                        setDisplay(item.result);
-                        setShowHistory(false);
-                      }}
-                      className="w-full text-right px-2.5 py-1.5 rounded-xl hover:bg-white/[0.06] transition-colors cursor-pointer"
-                    >
-                      <div className="text-[11px] text-zinc-500 tabular-nums">
-                        {item.expression} =
-                      </div>
-                      <div className="text-base font-medium text-zinc-100 tabular-nums">
-                        {formatDisplayText(item.result, t.calc.error)}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          ) : null}
-
-          <div className="text-right px-1 select-none">
-            <div className="text-[17px] text-zinc-500 min-h-[26px] truncate tabular-nums">
-              {expressionPreview}
-            </div>
-            <div
-              data-testid="calc-display"
-              className={`${displaySizeClass} font-light leading-none tracking-tight text-white tabular-nums truncate mt-1 transition-[font-size] duration-150`}
-            >
-              {formattedDisplay}
-            </div>
-          </div>
-        </div>
-
-        {/* Authentic 4x5 Tactile Circular Keypad (height-aware so short phones/laptops never clip) */}
-        <div className="w-full max-w-[min(100%,calc((100dvh-190px)*0.78))] sm:max-w-[min(100%,calc((92dvh-215px)*0.78))] mx-auto grid grid-cols-4 gap-2.5 sm:gap-3 pt-1">
-          <button type="button" onClick={clearAll} className={keyFunc}>
-            {display === '0' && prevValue === null ? 'AC' : 'C'}
-          </button>
-          <button type="button" onClick={toggleSign} className={keyFunc}>
-            +/−
-          </button>
-          <button type="button" onClick={inputPercent} className={keyFunc}>
-            %
-          </button>
-          <button type="button" onClick={() => handleOperator('÷')} className={keyOp('÷')}>
-            ÷
-          </button>
-
-          <button type="button" onClick={() => inputDigit('7')} className={keyNum}>
-            7
-          </button>
-          <button type="button" onClick={() => inputDigit('8')} className={keyNum}>
-            8
-          </button>
-          <button type="button" onClick={() => inputDigit('9')} className={keyNum}>
-            9
-          </button>
-          <button type="button" onClick={() => handleOperator('×')} className={keyOp('×')}>
-            ×
-          </button>
-
-          <button type="button" onClick={() => inputDigit('4')} className={keyNum}>
-            4
-          </button>
-          <button type="button" onClick={() => inputDigit('5')} className={keyNum}>
-            5
-          </button>
-          <button type="button" onClick={() => inputDigit('6')} className={keyNum}>
-            6
-          </button>
-          <button type="button" onClick={() => handleOperator('-')} className={keyOp('-')}>
-            −
-          </button>
-
-          <button type="button" onClick={() => inputDigit('1')} className={keyNum}>
-            1
-          </button>
-          <button type="button" onClick={() => inputDigit('2')} className={keyNum}>
-            2
-          </button>
-          <button type="button" onClick={() => inputDigit('3')} className={keyNum}>
-            3
-          </button>
-          <button type="button" onClick={() => handleOperator('+')} className={keyOp('+')}>
-            +
-          </button>
-
-          <button type="button" onClick={backspace} className={keyNum} aria-label="Backspace">
-            <Delete className="w-6 h-6" />
-          </button>
-          <button type="button" onClick={() => inputDigit('0')} className={keyNum}>
-            0
-          </button>
-          <button type="button" onClick={inputDecimal} className={keyNum}>
-            .
-          </button>
+        <div
+          className="relative"
+          onClick={(e) => {
+            e.stopPropagation();
+          }}
+        >
           <button
             type="button"
-            onClick={handleEquals}
-            className={`${keyBase} bg-[#ff9f0a] hover:bg-[#ffb340] text-white text-[30px] font-medium`}
+            onClick={() => setShowLangMenu((v) => !v)}
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-zinc-900/90 hover:bg-zinc-800 border border-white/10 text-xs font-medium text-zinc-200 transition-colors cursor-pointer"
           >
-            =
+            <Globe className="w-3.5 h-3.5 text-zinc-400" />
+            <span>{LOCALE_LABELS[locale]}</span>
           </button>
+
+          {showLangMenu && (
+            <div className="absolute right-0 mt-2 w-40 rounded-2xl bg-[#1c1c1e] border border-white/10 shadow-2xl py-1.5 z-30">
+              {(Object.keys(LOCALE_LABELS) as Locale[]).map((code) => (
+                <button
+                  key={code}
+                  type="button"
+                  onClick={() => {
+                    setLocale(code);
+                    setShowLangMenu(false);
+                  }}
+                  className="w-full px-3.5 py-2 text-left text-xs flex items-center justify-between text-zinc-200 hover:bg-white/10 transition-colors cursor-pointer"
+                >
+                  <span>{LOCALE_LABELS[code]}</span>
+                  {locale === code && <Check className="w-3.5 h-3.5 text-[#ff9f0a]" />}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-      </div>
+      </header>
+
+      {/* Main Responsive Calculator Stage */}
+      <main className="flex-1 flex items-stretch sm:items-center justify-center sm:px-6 sm:py-4 relative z-10">
+        <div className="w-full sm:w-auto flex flex-col lg:flex-row items-stretch justify-center gap-6">
+          {/* Calculator Instrument */}
+          <div className="w-full max-w-[400px] mx-auto sm:w-[360px] h-[100dvh] sm:h-auto sm:max-h-[86dvh] bg-black sm:bg-[#111215] sm:rounded-[32px] sm:ring-1 sm:ring-white/[0.1] sm:shadow-[0_28px_80px_rgba(0,0,0,0.75)] flex flex-col justify-between px-4 pt-3 pb-4 sm:p-5 relative">
+            {/* Mobile-only Top Utility Strip */}
+            <div className="flex sm:hidden items-center justify-between h-10 relative">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowHistory((v) => !v);
+                    setShowLangMenu(false);
+                  }}
+                  aria-label={t.calc.history}
+                  title={t.calc.history}
+                  className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors cursor-pointer ${
+                    showHistory
+                      ? 'bg-white/15 text-[#ff9f0a]'
+                      : 'text-zinc-400 hover:text-white hover:bg-white/10'
+                  }`}
+                >
+                  <History className="w-[18px] h-[18px]" />
+                </button>
+                <span className="text-[13px] font-medium tracking-tight text-zinc-400">
+                  {t.app.publicTitle}
+                </span>
+              </div>
+
+              <div
+                className="relative"
+                onClick={(e) => {
+                  e.stopPropagation();
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setShowLangMenu((v) => !v)}
+                  aria-label="Language"
+                  className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors cursor-pointer ${
+                    showLangMenu
+                      ? 'bg-white/15 text-white'
+                      : 'text-zinc-500 hover:text-zinc-200 hover:bg-white/10'
+                  }`}
+                >
+                  <Globe className="w-[17px] h-[17px]" />
+                </button>
+
+                {showLangMenu && (
+                  <div className="absolute right-0 mt-1.5 w-40 rounded-2xl bg-[#1c1c1e] border border-white/10 shadow-2xl py-1.5 z-30">
+                    {(Object.keys(LOCALE_LABELS) as Locale[]).map((code) => (
+                      <button
+                        key={code}
+                        type="button"
+                        onClick={() => {
+                          setLocale(code);
+                          setShowLangMenu(false);
+                        }}
+                        className="w-full px-3.5 py-2 text-left text-xs flex items-center justify-between text-zinc-200 hover:bg-white/10 transition-colors cursor-pointer"
+                      >
+                        <span>{LOCALE_LABELS[code]}</span>
+                        {locale === code && <Check className="w-3.5 h-3.5 text-[#ff9f0a]" />}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Tablet-only quick history toggle inside headerless box */}
+            <div className="hidden sm:flex lg:hidden items-center justify-between mb-1">
+              <button
+                type="button"
+                onClick={() => setShowHistory((v) => !v)}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs transition-colors cursor-pointer ${
+                  showHistory
+                    ? 'bg-white/10 text-[#ff9f0a]'
+                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
+                }`}
+              >
+                <History className="w-3.5 h-3.5" />
+                <span>{t.calc.history}</span>
+              </button>
+            </div>
+
+            {/* Display / Mobile & Tablet History Drawer */}
+            <div className="flex-1 flex flex-col justify-end relative min-h-[108px] sm:min-h-[132px] py-2 sm:py-3">
+              {showHistory ? (
+                <div className="lg:hidden absolute inset-0 bg-[#16171b]/95 rounded-2xl border border-white/[0.08] p-4 flex flex-col justify-between z-20">
+                  <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
+                    <span className="text-xs font-medium text-zinc-400">{t.calc.history}</span>
+                    {history.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setHistory([])}
+                        className="text-xs font-medium text-[#ff9f0a] hover:text-[#ffb340] cursor-pointer"
+                      >
+                        {t.calc.clearHistory}
+                      </button>
+                    )}
+                  </div>
+                  {renderHistoryItems(true)}
+                </div>
+              ) : null}
+
+              <div className="text-right px-2 py-2 sm:bg-black/40 sm:rounded-2xl sm:border sm:border-white/[0.05] select-none">
+                <div className="text-[16px] text-zinc-500 min-h-[24px] truncate tabular-nums">
+                  {expressionPreview}
+                </div>
+                <div
+                  data-testid="calc-display"
+                  className={`${displaySizeClass} font-light leading-none tracking-tight text-white tabular-nums truncate mt-1 transition-[font-size] duration-150`}
+                >
+                  {formattedDisplay}
+                </div>
+              </div>
+            </div>
+
+            {/* Authentic 4x5 Tactile Circular Keypad */}
+            <div className="w-full max-w-[min(100%,calc((100dvh-190px)*0.78))] sm:max-w-full mx-auto grid grid-cols-4 gap-2.5 sm:gap-3 pt-2">
+              <button type="button" onClick={clearAll} className={keyFunc}>
+                {display === '0' && prevValue === null ? 'AC' : 'C'}
+              </button>
+              <button type="button" onClick={toggleSign} className={keyFunc}>
+                +/−
+              </button>
+              <button type="button" onClick={inputPercent} className={keyFunc}>
+                %
+              </button>
+              <button type="button" onClick={() => handleOperator('÷')} className={keyOp('÷')}>
+                ÷
+              </button>
+
+              <button type="button" onClick={() => inputDigit('7')} className={keyNum}>
+                7
+              </button>
+              <button type="button" onClick={() => inputDigit('8')} className={keyNum}>
+                8
+              </button>
+              <button type="button" onClick={() => inputDigit('9')} className={keyNum}>
+                9
+              </button>
+              <button type="button" onClick={() => handleOperator('×')} className={keyOp('×')}>
+                ×
+              </button>
+
+              <button type="button" onClick={() => inputDigit('4')} className={keyNum}>
+                4
+              </button>
+              <button type="button" onClick={() => inputDigit('5')} className={keyNum}>
+                5
+              </button>
+              <button type="button" onClick={() => inputDigit('6')} className={keyNum}>
+                6
+              </button>
+              <button type="button" onClick={() => handleOperator('-')} className={keyOp('-')}>
+                −
+              </button>
+
+              <button type="button" onClick={() => inputDigit('1')} className={keyNum}>
+                1
+              </button>
+              <button type="button" onClick={() => inputDigit('2')} className={keyNum}>
+                2
+              </button>
+              <button type="button" onClick={() => inputDigit('3')} className={keyNum}>
+                3
+              </button>
+              <button type="button" onClick={() => handleOperator('+')} className={keyOp('+')}>
+                +
+              </button>
+
+              <button type="button" onClick={backspace} className={keyNum} aria-label="Backspace">
+                <Delete className="w-6 h-6" />
+              </button>
+              <button type="button" onClick={() => inputDigit('0')} className={keyNum}>
+                0
+              </button>
+              <button type="button" onClick={inputDecimal} className={keyNum}>
+                .
+              </button>
+              <button
+                type="button"
+                onClick={handleEquals}
+                className={`${keyBase} bg-[#ff9f0a] hover:bg-[#ffb340] text-white text-[30px] font-medium`}
+              >
+                =
+              </button>
+            </div>
+          </div>
+
+          {/* Desktop Side Tape / History Panel */}
+          <aside className="hidden lg:flex lg:w-[290px] max-h-[86dvh] bg-[#111215]/90 rounded-[32px] ring-1 ring-white/[0.08] p-5 flex-col justify-between">
+            <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
+              <div className="flex items-center gap-2 text-xs font-semibold text-zinc-300 uppercase tracking-wider">
+                <History className="w-3.5 h-3.5 text-[#ff9f0a]" />
+                <span>{t.calc.history}</span>
+              </div>
+              {history.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setHistory([])}
+                  className="text-xs font-medium text-[#ff9f0a] hover:text-[#ffb340] cursor-pointer"
+                >
+                  {t.calc.clearHistory}
+                </button>
+              )}
+            </div>
+
+            {renderHistoryItems(false)}
+
+            <div className="pt-3 border-t border-white/[0.08] flex items-center justify-between text-[11px] text-zinc-500">
+              <span>Esc · AC</span>
+              <span>Backspace · ⌫</span>
+              <span>Enter · =</span>
+            </div>
+          </aside>
+        </div>
+      </main>
+
+      <div className="hidden sm:block h-4" />
 
       {/* Epic 420 Portal Animation */}
       {unlocked420 && (
