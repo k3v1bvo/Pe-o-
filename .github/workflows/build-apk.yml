@@ -18,19 +18,19 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
-      - name: Setup Java 17
+      - name: Setup Java 21
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
 
       - name: Install dependencies and Capacitor
         run: |
           npm ci
-          npm install @capacitor/core @capacitor/cli @capacitor/android
+          npm install --no-save @capacitor/core@^8 @capacitor/cli@^8 @capacitor/android@^8
 
       - name: Prepare Android project with Calculadora icon
         env:
