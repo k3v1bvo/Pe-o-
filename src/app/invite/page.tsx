@@ -98,12 +98,7 @@ function InviteFormInner() {
 
       if (data.session) {
         await refreshProfile();
-        const target =
-          inviteInfo?.role === 'consignee'
-            ? '/consignments'
-            : inviteInfo?.role === 'seller'
-            ? '/sales'
-            : '/dashboard';
+        const target = inviteInfo?.role === 'seller' ? '/consignments' : '/dashboard';
         router.push(target);
       } else {
         setSuccessMsg(
@@ -162,8 +157,6 @@ function InviteFormInner() {
               ? t.auth.roleAdmin
               : inviteInfo.role === 'seller'
               ? t.auth.roleSeller
-              : inviteInfo.role === 'consignee'
-              ? t.auth.roleConsignee
               : t.auth.roleWarehouse}
           </span>
         </div>

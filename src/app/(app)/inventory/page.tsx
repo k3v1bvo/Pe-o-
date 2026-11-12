@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
-import { Plus, Camera, Package, Scale, Upload, X, Lock } from 'lucide-react';
+import { Plus, Camera, Package, Scale, Upload, X, Lock, Search } from 'lucide-react';
 import { useApp } from '@/components/providers/app-provider';
 import {
   addLotPhoto,
@@ -50,6 +50,7 @@ export default function InventoryPage() {
   const [notes, setNotes] = useState('');
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [saving, setSaving] = useState(false);
+  const [lotSearch, setLotSearch] = useState('');
 
   // Add photo to existing lot
   const [uploadingLotId, setUploadingLotId] = useState<string | null>(null);
@@ -276,40 +277,68 @@ export default function InventoryPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-zinc-400 mb-1.5">
-                {t.inventory.declaredWeight}
+              <label className="block text-xs font-medium text-zinc-300 mb-1">
+                {t.inventory.declaredWeight} <span className="text-rose-400">*</span>
               </label>
+              <p className="text-[11px] text-zinc-500 mb-1.5">
+                Peso que dice el envío o proveedor (ej: 4 kilos = 4000 g).
+              </p>
               <input
                 type="number"
                 step="0.01"
                 required
                 value={declaredWeightG}
                 onChange={(e) => setDeclaredWeightG(e.target.value)}
+                placeholder="Ej: 4000"
                 className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-white font-mono"
               />
             </div>
 
             <div>
-              <label className="block text-xs text-zinc-400 mb-1.5">
-                {t.inventory.actualWeight}
+              <label className="block text-xs font-medium text-zinc-300 mb-1">
+                {t.inventory.actualWeight} <span className="text-rose-400">*</span>
               </label>
+              <p className="text-[11px] text-zinc-500 mb-1.5">
+                Peso real que marca tu báscula al recibirlo (detecta merma).
+              </p>
               <input
                 type="number"
                 step="0.01"
                 required
                 value={actualWeightG}
                 onChange={(e) => setActualWeightG(e.target.value)}
+                placeholder="Ej: 3985"
                 className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-white font-mono"
               />
             </div>
           </div>
 
+          {(() => {
+            const diff = (parseFloat(actualWeightG) || 0) - (parseFloat(declaredWeightG) || 0);
+            if (diff === 0) return null;
+            return (
+              <div
+                className={`text-xs px-3 py-2 rounded-xl border ${
+                  diff < 0
+                    ? 'bg-orange-500/10 border-orange-500/30 text-orange-300'
+                    : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                }`}
+              >
+                Diferencia al recibir: <strong className="font-mono">{diff > 0 ? `+${diff}` : diff}g</strong>{' '}
+                ({diff < 0 ? 'merma detectada' : 'excedente'})
+              </div>
+            );
+          })()}
+
           {isAdmin && (
             <div className="p-4 rounded-xl bg-emerald-500/[0.06] border border-emerald-500/20 space-y-2">
               <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-300">
                 <Lock className="w-3.5 h-3.5" />
-                <span>Inversión / Costo por Kilo (Solo Admin — oculto para Almacén)</span>
+                <span>Inversión / Costo por Kilo (Solo Admin — oculto para Almacén y Ventas)</span>
               </div>
+              <p className="text-[11px] text-zinc-400">
+                Cuánto te costó cada kilo (1,000g) de este lote. Almacén y Ventas nunca verán este dato.
+              </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
                 <input
                   type="number"
@@ -317,7 +346,7 @@ export default function InventoryPage() {
                   min="0"
                   value={costPerKg}
                   onChange={(e) => setCostPerKg(e.target.value)}
-                  placeholder="Ej: 850 por kilo"
+                  placeholder="Ej: 850 (costo por 1 kg)"
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white font-mono"
                 />
                 <div className="text-xs text-zinc-400 tabular-nums">
@@ -333,12 +362,13 @@ export default function InventoryPage() {
           )}
 
           <div>
-            <label className="block text-xs text-zinc-400 mb-1.5">{t.inventory.notes}</label>
+            <label className="block text-xs font-medium text-zinc-300 mb-1.5">{t.inventory.notes}</label>
             <input
               type="text"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-white"
+              placeholder="Ej: Llegaron 4 kilos sellados, humedad normal..."
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-zinc-600"
             />
           </div>
 
@@ -382,12 +412,35 @@ export default function InventoryPage() {
 
       {/* Lots List */}
       <div className="space-y-4">
+        {lots.length > 0 && (
+          <div className="flex items-center bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2.5 max-w-md">
+            <Search className="w-4 h-4 text-zinc-500 mr-2.5 shrink-0" />
+            <input
+              type="text"
+              value={lotSearch}
+              onChange={(e) => setLotSearch(e.target.value)}
+              placeholder="Buscar lote por cepa, proveedor o nota..."
+              className="w-full bg-transparent text-xs sm:text-sm text-white placeholder:text-zinc-500 focus:outline-none"
+            />
+          </div>
+        )}
+
         {lots.length === 0 ? (
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 text-center text-zinc-500 text-sm">
             {t.app.noData}
           </div>
         ) : (
-          lots.map((lot) => {
+          lots
+            .filter((lot) => {
+              const q = lotSearch.trim().toLowerCase();
+              if (!q) return true;
+              return (
+                (lot.strain?.name || '').toLowerCase().includes(q) ||
+                (lot.supplier || '').toLowerCase().includes(q) ||
+                (lot.notes || '').toLowerCase().includes(q)
+              );
+            })
+            .map((lot) => {
             const intakeDiff = Number(lot.actual_weight_g) - Number(lot.declared_weight_g);
             const lotCost = isAdmin ? lotCosts.find((c) => c.lot_id === lot.id) : undefined;
             const consignedG = consignments

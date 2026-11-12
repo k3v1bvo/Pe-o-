@@ -150,7 +150,7 @@ export default function ConsignmentsPage() {
       }
       if (isAdmin && profs.length > 0) {
         const preferred =
-          profs.find((u) => u.role === 'consignee') ||
+          profs.find((u) => u.role === 'seller') ||
           profs.find((u) => u.role === 'warehouse') ||
           profs[0];
         setConsigneeId((prev) => {
@@ -702,11 +702,15 @@ export default function ConsignmentsPage() {
                 className="w-full bg-[#060807] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white"
               >
                 <option value="">-- Socio sin cuenta / manual --</option>
-                {profiles.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name || u.email} ({u.role})
-                  </option>
-                ))}
+                {profiles.map((u) => {
+                  const roleTag =
+                    u.role === 'admin' ? 'Admin' : u.role === 'seller' ? 'Ventas' : 'Almacén';
+                  return (
+                    <option key={u.id} value={u.id}>
+                      {u.name || u.email} ({roleTag})
+                    </option>
+                  );
+                })}
               </select>
             </div>
 
@@ -771,9 +775,10 @@ export default function ConsignmentsPage() {
             </div>
 
             <div>
-              <label className="block text-xs text-zinc-400 mb-1.5">
+              <label className="block text-xs font-medium text-zinc-300 mb-1">
                 Cantidad ({activePreset.unitLabel})
               </label>
+              <p className="text-[11px] text-zinc-500 mb-1.5">Ej: 4 si son 4 kilos, 10 si son 10 bolsas.</p>
               <input
                 type="number"
                 step="0.01"
@@ -786,9 +791,10 @@ export default function ConsignmentsPage() {
             </div>
 
             <div>
-              <label className="block text-xs text-zinc-400 mb-1.5">
+              <label className="block text-xs font-medium text-zinc-300 mb-1">
                 A cuánto se la vendemos (c/u)
               </label>
+              <p className="text-[11px] text-zinc-500 mb-1.5">Precio acordado por unidad/kilo (él SÍ lo ve).</p>
               <input
                 type="number"
                 step="0.01"
@@ -801,7 +807,8 @@ export default function ConsignmentsPage() {
             </div>
 
             <div>
-              <label className="block text-xs text-zinc-400 mb-1.5">Total que debe pagar</label>
+              <label className="block text-xs font-medium text-zinc-300 mb-1">Total que debe pagar</label>
+              <p className="text-[11px] text-zinc-500 mb-1.5">Se calcula automático: cantidad × precio.</p>
               <input
                 type="number"
                 step="0.01"
@@ -817,10 +824,13 @@ export default function ConsignmentsPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
             <div className="p-3.5 rounded-xl bg-emerald-500/[0.06] border border-emerald-500/20">
-              <label className="flex items-center gap-1.5 text-xs text-emerald-300 mb-1.5">
+              <label className="flex items-center gap-1.5 text-xs font-medium text-emerald-300 mb-1">
                 <Lock className="w-3.5 h-3.5" />
                 <span>Mi inversión / costo total (Solo Admin, nunca lo ve quien lleva)</span>
               </label>
+              <p className="text-[11px] text-emerald-200/60 mb-1.5">
+                Cuánto te costó realmente a ti (ej: 3400 si pagaste 850 × 4 kilos).
+              </p>
               <input
                 type="number"
                 step="0.01"

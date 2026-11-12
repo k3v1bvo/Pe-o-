@@ -247,40 +247,11 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <Link
-          href="/consignments"
-          className="obsidian-card hover:border-emerald-400/40 rounded-2xl p-5 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 !border-emerald-500/25 bg-gradient-to-r from-emerald-500/[0.07] via-[#0d1410] to-[#0a0f0c]"
-        >
-          <div className="flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-400/30 flex items-center justify-center shrink-0">
-              <HandCoins className="w-5 h-5 text-emerald-300" />
-            </div>
-            <div>
-              <p className="text-xs text-zinc-400">Mi Saldo a Concesión</p>
-              <p className="text-xl font-semibold tabular-nums text-white mt-0.5">
-                {formatMoney(stats.consignmentOwed)}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 text-xs font-medium text-emerald-300">
-            {stats.pendingRequests > 0 && (
-              <span className="px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-300">
-                {stats.pendingRequests} pedido(s) pendiente(s)
-              </span>
-            )}
-            <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500/15 border border-emerald-400/30">
-              Pedir 50tas / Ver mi cuenta
-              <ArrowUpRight className="w-3.5 h-3.5" />
-            </span>
-          </div>
-        </Link>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { href: '/consignments', icon: HandCoins, label: t.nav.consignments, tone: 'text-emerald-300' },
             { href: '/inventory', icon: Package, label: t.nav.inventory, tone: 'text-emerald-400' },
             { href: '/grading', icon: Scale, label: t.nav.grading, tone: 'text-amber-400' },
-            { href: '/sales', icon: ShoppingBag, label: t.sales.wholesale, tone: 'text-teal-400' },
+            { href: '/expenses', icon: Receipt, label: t.nav.expenses, tone: 'text-rose-400' },
             { href: '/photos', icon: Camera, label: t.nav.photos, tone: 'text-sky-400' },
           ].map((item) => {
             const Icon = item.icon;

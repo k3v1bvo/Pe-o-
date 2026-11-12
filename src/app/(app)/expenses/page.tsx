@@ -117,7 +117,8 @@ export default function ExpensesPage() {
       >
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label className="block text-xs text-zinc-400 mb-1.5">{t.expenses.category}</label>
+            <label className="block text-xs font-medium text-zinc-300 mb-1">{t.expenses.category}</label>
+            <p className="text-[11px] text-zinc-500 mb-1.5">En qué área se usó el dinero.</p>
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value as ExpenseCategory)}
@@ -132,26 +133,30 @@ export default function ExpensesPage() {
           </div>
 
           <div>
-            <label className="block text-xs text-zinc-400 mb-1.5">{t.expenses.amount}</label>
+            <label className="block text-xs font-medium text-zinc-300 mb-1">{t.expenses.amount}</label>
+            <p className="text-[11px] text-zinc-500 mb-1.5">Cuánto dinero salió de caja.</p>
             <input
               type="number"
               step="0.01"
+              min="0"
               required
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
+              placeholder="Ej: 150"
               className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-white font-mono"
             />
           </div>
 
           <div>
-            <label className="block text-xs text-zinc-400 mb-1.5">{t.expenses.description}</label>
+            <label className="block text-xs font-medium text-zinc-300 mb-1">{t.expenses.description}</label>
+            <p className="text-[11px] text-zinc-500 mb-1.5">Detalle claro para control del Admin.</p>
             <input
               type="text"
               required
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Ej: 100 bolsas ziploc, taxi centro..."
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-white"
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-zinc-600"
             />
           </div>
         </div>

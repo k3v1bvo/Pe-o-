@@ -338,7 +338,9 @@ export default function SalesPage() {
               >
                 {lots.map((l) => (
                   <option key={l.id} value={l.id}>
-                    {l.strain?.name || 'Producto'} — {l.supplier} ({formatWeight(l.actual_weight_g)})
+                    {l.strain?.name || 'Producto'}
+                    {profile?.role !== 'seller' && l.supplier ? ` — ${l.supplier}` : ''} (
+                    {formatWeight(l.actual_weight_g)})
                   </option>
                 ))}
               </select>
@@ -387,7 +389,8 @@ export default function SalesPage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {mode === 'bulk' && (
             <div>
-              <label className="block text-xs text-zinc-400 mb-1.5">{t.sales.quantityG}</label>
+              <label className="block text-xs font-medium text-zinc-300 mb-1">{t.sales.quantityG}</label>
+              <p className="text-[11px] text-zinc-500 mb-1.5">Gramos reales entregados al cliente.</p>
               <input
                 type="number"
                 step="0.1"
@@ -397,43 +400,49 @@ export default function SalesPage() {
                   setQuantityG(e.target.value);
                   if (selectedLotId) applyBulkPrice(selectedLotId, e.target.value);
                 }}
+                placeholder="Ej: 250"
                 className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-white font-mono"
               />
             </div>
           )}
 
           <div>
-            <label className="block text-xs text-zinc-400 mb-1.5">{t.sales.unitPrice}</label>
+            <label className="block text-xs font-medium text-zinc-300 mb-1">{t.sales.unitPrice}</label>
+            <p className="text-[11px] text-zinc-500 mb-1.5">Precio por gramo o por bolsa armada.</p>
             <input
               type="number"
               step="0.01"
               required
               value={unitPrice}
               onChange={(e) => setUnitPrice(e.target.value)}
+              placeholder="Ej: 50"
               className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-white font-mono"
             />
           </div>
 
           <div>
-            <label className="block text-xs text-zinc-400 mb-1.5">{t.sales.totalPrice}</label>
+            <label className="block text-xs font-medium text-zinc-300 mb-1">{t.sales.totalPrice}</label>
+            <p className="text-[11px] text-zinc-500 mb-1.5">Monto total pagado en esta venta.</p>
             <input
               type="number"
               step="0.01"
               required
               value={totalPrice}
               onChange={(e) => setTotalPrice(e.target.value)}
+              placeholder="Ej: 50"
               className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-emerald-400 font-mono font-bold"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-xs text-zinc-400 mb-1.5">{t.inventory.notes}</label>
+          <label className="block text-xs font-medium text-zinc-300 mb-1.5">{t.inventory.notes}</label>
           <input
             type="text"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-white"
+            placeholder="Ej: Cliente Juan, pago en efectivo o transferencia..."
+            className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-zinc-600"
           />
         </div>
 

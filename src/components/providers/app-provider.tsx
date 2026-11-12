@@ -56,19 +56,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       admin: 'demo-admin-id',
       warehouse: 'demo-warehouse-id',
       seller: 'demo-seller-id',
-      consignee: 'demo-consignee-id',
     };
     const emailMap: Record<UserRole, string> = {
       admin: 'admin@local.test',
       warehouse: 'almacen@local.test',
       seller: 'ventas@local.test',
-      consignee: 'socio@local.test',
     };
     const nameMap: Record<UserRole, string> = {
       admin: 'Admin (Demo)',
-      warehouse: 'Almacenista (Demo)',
-      seller: 'Vendedor (Demo)',
-      consignee: 'Concesionario (Demo)',
+      warehouse: 'Almacén (Demo)',
+      seller: 'Ventas (Demo)',
     };
     const demoProfile: Profile = {
       id: idMap[role],
@@ -132,7 +129,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           id: user.id,
           email: user.email || '',
           name: user.user_metadata?.name || 'Usuario',
-          role: 'consignee',
+          role: 'seller',
           active: true,
           created_at: user.created_at,
         });

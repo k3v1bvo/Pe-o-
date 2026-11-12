@@ -14,6 +14,17 @@ import {
 } from '@/lib/data-service';
 import type { PricingBagType, PricingRule, PricingRuleType, Strain } from '@/types/database';
 
+const BAG_DEFAULT_GRAMS: Record<PricingBagType, { weight: string; price?: string }> = {
+  '50': { weight: '27', price: '50' },
+  '30': { weight: '15', price: '30' },
+  '100': { weight: '60', price: '100' },
+  '125g': { weight: '125' },
+  '250g': { weight: '250' },
+  '500g': { weight: '500' },
+  '1000g': { weight: '1000' },
+  custom: { weight: '' },
+};
+
 export default function PricingPage() {
   const { profile, t, formatMoney } = useApp();
   const router = useRouter();
@@ -114,36 +125,61 @@ export default function PricingPage() {
 
       {/* Strains Section */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 space-y-4">
-        <h2 className="text-sm font-semibold text-white">{t.pricing.strainsTitle}</h2>
+        <div>
+          <h2 className="text-sm font-semibold text-white">{t.pricing.strainsTitle}</h2>
+          <p className="text-xs text-zinc-400 mt-1">
+            Registra cada variedad o producto. El precio por gramo sirve como base automática para
+            calcular ventas a granel si no hay una regla especial.
+          </p>
+        </div>
 
-        <form onSubmit={handleAddStrain} className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-          <input
-            type="text"
-            required
-            value={strainName}
-            onChange={(e) => setStrainName(e.target.value)}
-            placeholder={t.pricing.strainName}
-            className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white"
-          />
-          <input
-            type="text"
-            value={strainDesc}
-            onChange={(e) => setStrainDesc(e.target.value)}
-            placeholder={t.pricing.description}
-            className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white"
-          />
-          <input
-            type="number"
-            step="0.01"
-            required
-            value={pricePerGram}
-            onChange={(e) => setPricePerGram(e.target.value)}
-            placeholder={t.pricing.pricePerGram}
-            className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white font-mono"
-          />
+        <form onSubmit={handleAddStrain} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+          <div>
+            <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+              {t.pricing.strainName} <span className="text-rose-400">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              value={strainName}
+              onChange={(e) => setStrainName(e.target.value)}
+              placeholder="Ej: OG Kush, Sativa Indoor..."
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white placeholder:text-zinc-600"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+              Nota o calidad (opcional)
+            </label>
+            <input
+              type="text"
+              value={strainDesc}
+              onChange={(e) => setStrainDesc(e.target.value)}
+              placeholder="Ej: Cosecha Nov, Hidropónica..."
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white placeholder:text-zinc-600"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+              {t.pricing.pricePerGram} <span className="text-rose-400">*</span>
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              required
+              value={pricePerGram}
+              onChange={(e) => setPricePerGram(e.target.value)}
+              placeholder="Ej: 15 (precio por 1 gramo)"
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white font-mono placeholder:text-zinc-600"
+            />
+          </div>
+
           <button
             type="submit"
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-semibold text-sm cursor-pointer"
+            className="h-[38px] inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-semibold text-sm cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             {t.pricing.newStrain}
@@ -156,25 +192,33 @@ export default function PricingPage() {
               key={s.id}
               className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 flex items-center justify-between gap-3"
             >
-              <div>
-                <div className="font-semibold text-white">{s.name}</div>
-                {s.description && <div className="text-xs text-zinc-500">{s.description}</div>}
+              <div className="min-w-0">
+                <div className="font-semibold text-white truncate">{s.name}</div>
+                {s.description ? (
+                  <div className="text-xs text-zinc-500 truncate">{s.description}</div>
+                ) : (
+                  <div className="text-[11px] text-zinc-600">Edita el $/g y sal del cuadro</div>
+                )}
               </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  step="0.01"
-                  defaultValue={s.price_per_gram}
-                  onBlur={async (e) => {
-                    const val = parseFloat(e.target.value);
-                    if (!Number.isNaN(val) && val !== s.price_per_gram) {
-                      await updateStrain(s.id, { price_per_gram: val });
-                      await loadData();
-                    }
-                  }}
-                  className="w-24 bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1 text-right text-sm font-mono text-emerald-400"
-                />
-                <span className="text-xs text-zinc-500">/g</span>
+              <div className="shrink-0 text-right">
+                <span className="block text-[10px] text-zinc-500 mb-0.5">Precio x gramo</span>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    defaultValue={s.price_per_gram}
+                    onBlur={async (e) => {
+                      const val = parseFloat(e.target.value);
+                      if (!Number.isNaN(val) && val !== s.price_per_gram) {
+                        await updateStrain(s.id, { price_per_gram: val });
+                        await loadData();
+                      }
+                    }}
+                    className="w-24 bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1 text-right text-sm font-mono text-emerald-400"
+                  />
+                  <span className="text-xs text-zinc-500">/g</span>
+                </div>
               </div>
             </div>
           ))}
@@ -183,84 +227,132 @@ export default function PricingPage() {
 
       {/* Pricing Rules Section */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 space-y-4">
-        <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-          <Tags className="w-4 h-4 text-emerald-400" />
-          <span>{t.pricing.rulesTitle}</span>
-        </h2>
+        <div>
+          <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+            <Tags className="w-4 h-4 text-emerald-400" />
+            <span>{t.pricing.rulesTitle}</span>
+          </h2>
+          <p className="text-xs text-zinc-400 mt-1">
+            Configura precios fijos por bolsa armada o paquetes al mayoreo. Ejemplo: una{' '}
+            <strong className="text-zinc-200">Bolsa 50</strong> trae{' '}
+            <strong className="text-zinc-200">27g</strong> y se vende en{' '}
+            <strong className="text-zinc-200">$50</strong>.
+          </p>
+        </div>
 
-        <form onSubmit={handleAddRule} className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          <select
-            value={ruleStrainId}
-            onChange={(e) => setRuleStrainId(e.target.value)}
-            className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white"
-          >
-            {strains.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
+        <form onSubmit={handleAddRule} className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 items-end">
+            <div>
+              <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+                Cepa / Producto
+              </label>
+              <select
+                value={ruleStrainId}
+                onChange={(e) => setRuleStrainId(e.target.value)}
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white"
+              >
+                {strains.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <select
-            value={ruleType}
-            onChange={(e) => setRuleType(e.target.value as PricingRuleType)}
-            className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white"
-          >
-            <option value="retail">{t.sales.retail}</option>
-            <option value="wholesale">{t.sales.wholesale}</option>
-            <option value="special">{t.pricing.special}</option>
-          </select>
+            <div>
+              <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+                Tipo de venta
+              </label>
+              <select
+                value={ruleType}
+                onChange={(e) => setRuleType(e.target.value as PricingRuleType)}
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white"
+              >
+                <option value="retail">{t.sales.retail}</option>
+                <option value="wholesale">{t.sales.wholesale}</option>
+                <option value="special">{t.pricing.special}</option>
+              </select>
+            </div>
 
-          <select
-            value={bagType}
-            onChange={(e) => setBagType(e.target.value as PricingBagType)}
-            className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white"
-          >
-            <option value="50">Bolsa 50</option>
-            <option value="30">Bolsa 30</option>
-            <option value="100">Bolsa 100</option>
-            <option value="125g">125g (Octavo)</option>
-            <option value="250g">250g (Cuarto)</option>
-            <option value="500g">500g (Medio)</option>
-            <option value="1000g">1000g (Kilo)</option>
-            <option value="custom">Custom</option>
-          </select>
+            <div>
+              <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+                Presentación / Tamaño
+              </label>
+              <select
+                value={bagType}
+                onChange={(e) => {
+                  const next = e.target.value as PricingBagType;
+                  setBagType(next);
+                  const preset = BAG_DEFAULT_GRAMS[next];
+                  if (preset.weight) setRuleWeight(preset.weight);
+                  if (preset.price) setRulePrice(preset.price);
+                }}
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white"
+              >
+                <option value="50">Bolsa 50</option>
+                <option value="30">Bolsa 30</option>
+                <option value="100">Bolsa 100</option>
+                <option value="125g">125g (Octavo)</option>
+                <option value="250g">250g (Cuarto)</option>
+                <option value="500g">500g (Medio)</option>
+                <option value="1000g">1000g (Kilo)</option>
+                <option value="custom">Personalizado</option>
+              </select>
+            </div>
 
-          <input
-            type="number"
-            step="0.1"
-            value={ruleWeight}
-            onChange={(e) => setRuleWeight(e.target.value)}
-            placeholder="Peso (g)"
-            className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white font-mono"
-          />
+            <div>
+              <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+                Gramos que incluye (g)
+              </label>
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                value={ruleWeight}
+                onChange={(e) => setRuleWeight(e.target.value)}
+                placeholder="Ej: 27"
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white font-mono placeholder:text-zinc-600"
+              />
+            </div>
 
-          <input
-            type="number"
-            step="0.01"
-            required
-            value={rulePrice}
-            onChange={(e) => setRulePrice(e.target.value)}
-            placeholder="Precio"
-            className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white font-mono"
-          />
+            <div>
+              <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+                Precio de venta ($) <span className="text-rose-400">*</span>
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                required
+                value={rulePrice}
+                onChange={(e) => setRulePrice(e.target.value)}
+                placeholder="Ej: 50"
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white font-mono placeholder:text-zinc-600"
+              />
+            </div>
 
-          <button
-            type="submit"
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-semibold text-sm cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            {t.app.add}
-          </button>
+            <button
+              type="submit"
+              className="h-[38px] inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-semibold text-sm cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              {t.app.add}
+            </button>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-zinc-400 mb-1.5">
+              Descripción o nombre de la promo (opcional)
+            </label>
+            <input
+              type="text"
+              value={ruleDesc}
+              onChange={(e) => setRuleDesc(e.target.value)}
+              placeholder="Ej: Promo 2x bolsas de 50, Precio socio por cuarto, etc."
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white placeholder:text-zinc-600"
+            />
+          </div>
         </form>
-
-        <input
-          type="text"
-          value={ruleDesc}
-          onChange={(e) => setRuleDesc(e.target.value)}
-          placeholder="Descripción (ej: Promo 2x bolsas de 50, Mayorista cuarto, etc.)"
-          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white"
-        />
 
         <div className="divide-y divide-zinc-800">
           {rules.map((rule) => (

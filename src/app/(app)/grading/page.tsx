@@ -163,6 +163,14 @@ export default function GradingPage() {
         onSubmit={handleCreateBags}
         className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 space-y-4"
       >
+        <div>
+          <h2 className="text-sm font-semibold text-white">Armar Bolsas para Venta (50tas / 30s / 100s)</h2>
+          <p className="text-xs text-zinc-400 mt-1">
+            Elige el tamaño de bolsa que estás empaquetando, el peso real por bolsa y cuántas armaste.
+            Se descontarán automáticamente del stock del lote.
+          </p>
+        </div>
+
         <div className="flex flex-wrap gap-2">
           {(
             [
@@ -189,40 +197,48 @@ export default function GradingPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label className="block text-xs text-zinc-400 mb-1.5">
+            <label className="block text-xs font-medium text-zinc-300 mb-1">
               {t.grading.weightPerBag}
             </label>
+            <p className="text-[11px] text-zinc-500 mb-1.5">Gramos que pesa 1 bolsa individual.</p>
             <input
               type="number"
               step="0.1"
+              min="0.1"
               required
               value={weightG}
               onChange={(e) => setWeightG(e.target.value)}
+              placeholder="Ej: 27"
               className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-white font-mono"
             />
           </div>
 
           <div>
-            <label className="block text-xs text-zinc-400 mb-1.5">{t.grading.quantity}</label>
+            <label className="block text-xs font-medium text-zinc-300 mb-1">{t.grading.quantity}</label>
+            <p className="text-[11px] text-zinc-500 mb-1.5">Cuántas bolsas iguales armaste ahora.</p>
             <input
               type="number"
               min="1"
               required
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
+              placeholder="Ej: 10"
               className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-white font-mono"
             />
           </div>
 
           {isAdmin ? (
             <div>
-              <label className="block text-xs text-zinc-400 mb-1.5">{t.grading.bagPrice}</label>
+              <label className="block text-xs font-medium text-zinc-300 mb-1">{t.grading.bagPrice}</label>
+              <p className="text-[11px] text-zinc-500 mb-1.5">Precio de venta al público de cada bolsa.</p>
               <input
                 type="number"
                 step="0.01"
+                min="0"
                 required
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
+                placeholder="Ej: 50"
                 className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-white font-mono"
               />
             </div>
@@ -233,14 +249,23 @@ export default function GradingPage() {
           )}
         </div>
 
-        <button
-          type="submit"
-          disabled={saving || !selectedLotId}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-semibold text-sm cursor-pointer disabled:opacity-60"
-        >
-          <Plus className="w-4 h-4" />
-          {t.grading.createBags}
-        </button>
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+          <span className="text-xs text-zinc-400">
+            Total a empaquetar:{' '}
+            <strong className="text-emerald-300 font-mono">
+              {((parseFloat(weightG) || 0) * (parseInt(quantity, 10) || 0)).toFixed(1)} g
+            </strong>{' '}
+            ({parseInt(quantity, 10) || 0} bolsas × {parseFloat(weightG) || 0}g)
+          </span>
+          <button
+            type="submit"
+            disabled={saving || !selectedLotId}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-semibold text-sm cursor-pointer disabled:opacity-60"
+          >
+            <Plus className="w-4 h-4" />
+            {t.grading.createBags}
+          </button>
+        </div>
       </form>
 
       {/* Graded Bags Grid */}

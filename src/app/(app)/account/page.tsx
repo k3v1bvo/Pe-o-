@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState, useSyncExternalStore } from 'react';
 import { KeyRound, ShieldCheck, User, Check, Lock, Eye, EyeOff, AlertTriangle } from 'lucide-react';
 import { useApp } from '@/components/providers/app-provider';
 import { createClient } from '@/lib/supabase/client';
@@ -19,14 +19,32 @@ export default function AccountPage() {
   const [savingPass, setSavingPass] = useState(false);
   const [passError, setPassError] = useState('');
   const [passSuccess, setPassSuccess] = useState('');
+  const [recoveryEvent, setRecoveryEvent] = useState(false);
+  const hasRecoveryQuery = useSyncExternalStore(
+    () => () => {},
+    () => window.location.search.includes('recovery=1'),
+    () => false
+  );
+  const recoveryMode = recoveryEvent || hasRecoveryQuery;
+
+  useEffect(() => {
+    if (isDemo) return;
+    const supabase = createClient();
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setRecoveryEvent(true);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [isDemo]);
 
   const roleLabel =
     profile?.role === 'admin'
       ? t.auth.roleAdmin
       : profile?.role === 'seller'
       ? t.auth.roleSeller
-      : profile?.role === 'consignee'
-      ? t.auth.roleConsignee
       : t.auth.roleWarehouse;
 
   const handleSaveName = async (e: React.FormEvent) => {
@@ -94,6 +112,14 @@ export default function AccountPage() {
           Administra tu nombre visible y cambia tu contraseña de acceso de forma segura.
         </p>
       </div>
+
+      {recoveryMode && (
+        <div className="p-4 rounded-2xl bg-amber-500/15 border border-amber-400/35 text-amber-200 text-xs sm:text-sm leading-relaxed">
+          <strong className="text-amber-100">Recuperación de contraseña activada:</strong> ya
+          entraste con tu enlace seguro. Escribe y confirma tu nueva contraseña abajo para recuperar
+          tu cuenta.
+        </div>
+      )}
 
       {/* Identity Card */}
       <div className="obsidian-card rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">

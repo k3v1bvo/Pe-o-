@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -10,7 +10,9 @@ import {
   ArrowLeft,
   Shield,
   Warehouse,
+  ShoppingBag,
   AlertCircle,
+  CheckCircle2,
   Eye,
   EyeOff,
   Scale,
@@ -102,18 +104,60 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [recoveryMsg, setRecoveryMsg] = useState('');
+  const [sendingRecovery, setSendingRecovery] = useState(false);
+
+  const hasRecoveryQueryError = useSyncExternalStore(
+    () => () => {},
+    () => window.location.search.includes('error=recovery'),
+    () => false
+  );
+  const displayError =
+    error ||
+    (hasRecoveryQueryError && !recoveryMsg
+      ? 'El enlace de recuperación expiró o ya fue usado. Solicita uno nuevo abajo.'
+      : '');
 
   useEffect(() => {
     if (profile) {
-      const target =
-        profile.role === 'consignee'
-          ? '/consignments'
-          : profile.role === 'seller'
-          ? '/sales'
-          : '/dashboard';
+      const target = profile.role === 'seller' ? '/consignments' : '/dashboard';
       router.replace(target);
     }
   }, [profile, router]);
+
+  const handleForgotPassword = async () => {
+    setError('');
+    setRecoveryMsg('');
+    if (isDemo) {
+      setRecoveryMsg('En modo demo usa los botones rápidos de abajo para cambiar de perfil.');
+      return;
+    }
+    const cleanEmail = email.trim();
+    if (!cleanEmail) {
+      setError('Escribe tu correo electrónico arriba para enviarte el enlace de recuperación.');
+      return;
+    }
+    setSendingRecovery(true);
+    try {
+      const supabase = createClient();
+      const redirectTo = `${window.location.origin}/auth/callback?next=/account?recovery=1`;
+      const { error: resetErr } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+        redirectTo,
+      });
+      if (resetErr) {
+        setError(resetErr.message);
+        return;
+      }
+      setRecoveryMsg(
+        `Enlace de recuperación enviado a ${cleanEmail}. Revisa tu correo (o spam) y abre el link para elegir nueva contraseña.`
+      );
+    } catch (err) {
+      console.error(err);
+      setError('No se pudo enviar el enlace de recuperación.');
+    } finally {
+      setSendingRecovery(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -266,13 +310,20 @@ export default function LoginPage() {
             <p className="text-sm text-zinc-400 mt-1">{t.auth.loginSubtitle}</p>
           </div>
 
-          {error && (
+          {displayError && (
             <div
               role="alert"
               className="mb-5 p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-200 text-xs sm:text-sm flex items-start gap-2.5"
             >
               <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-              <span>{error}</span>
+              <span>{displayError}</span>
+            </div>
+          )}
+
+          {recoveryMsg && (
+            <div className="mb-5 p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-200 text-xs sm:text-sm flex items-start gap-2.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+              <span>{recoveryMsg}</span>
             </div>
           )}
 
@@ -327,6 +378,16 @@ export default function LoginPage() {
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+              <div className="mt-2 flex justify-end">
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  disabled={sendingRecovery}
+                  className="text-xs text-emerald-400 hover:text-emerald-300 transition-colors cursor-pointer disabled:opacity-60"
+                >
+                  {sendingRecovery ? 'Enviando enlace...' : '¿Olvidaste tu contraseña? Recuperar por correo'}
+                </button>
+              </div>
             </div>
 
             <button
@@ -342,14 +403,14 @@ export default function LoginPage() {
           {isDemo && (
             <div className="mt-6 pt-5 border-t border-white/[0.08] space-y-2">
               <p className="text-[11px] text-zinc-400 text-center mb-2">{t.app.demoBanner}</p>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
                   onClick={() => {
                     setDemoUser('admin');
                     router.push('/dashboard');
                   }}
-                  className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/25 text-xs text-emerald-300 font-medium cursor-pointer transition-colors"
+                  className="flex items-center justify-center gap-1.5 py-2.5 px-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/25 text-xs text-emerald-300 font-medium cursor-pointer transition-colors"
                 >
                   <Shield className="w-3.5 h-3.5" />
                   <span>Admin</span>
@@ -360,10 +421,21 @@ export default function LoginPage() {
                     setDemoUser('warehouse');
                     router.push('/dashboard');
                   }}
-                  className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/25 text-xs text-amber-300 font-medium cursor-pointer transition-colors"
+                  className="flex items-center justify-center gap-1.5 py-2.5 px-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/25 text-xs text-amber-300 font-medium cursor-pointer transition-colors"
                 >
                   <Warehouse className="w-3.5 h-3.5" />
                   <span>Almacén</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDemoUser('seller');
+                    router.push('/consignments');
+                  }}
+                  className="flex items-center justify-center gap-1.5 py-2.5 px-2.5 rounded-xl bg-teal-500/10 hover:bg-teal-500/20 border border-teal-500/25 text-xs text-teal-300 font-medium cursor-pointer transition-colors"
+                >
+                  <ShoppingBag className="w-3.5 h-3.5" />
+                  <span>Ventas</span>
                 </button>
               </div>
             </div>

@@ -47,7 +47,6 @@ export interface Dictionary {
     roleAdmin: string;
     roleWarehouse: string;
     roleSeller: string;
-    roleConsignee: string;
     demoAdminBtn: string;
     demoWarehouseBtn: string;
   };
@@ -242,10 +241,9 @@ export const dictionaries: Record<Locale, Dictionary> = {
       backToCalc: 'Volver a la Calculadora',
       signOut: 'Cerrar sesión',
       invalidCredentials: 'Credenciales inválidas',
-      roleAdmin: 'Administrador',
-      roleWarehouse: 'Almacenista',
-      roleSeller: 'Vendedor / Ventas',
-      roleConsignee: 'Concesionario',
+      roleAdmin: 'Admin',
+      roleWarehouse: 'Almacén',
+      roleSeller: 'Ventas',
       demoAdminBtn: 'Probar como Admin (Demo)',
       demoWarehouseBtn: 'Probar como Almacenista (Demo)',
     },
@@ -438,10 +436,9 @@ export const dictionaries: Record<Locale, Dictionary> = {
       backToCalc: 'Back to Calculator',
       signOut: 'Sign Out',
       invalidCredentials: 'Invalid credentials',
-      roleAdmin: 'Administrator',
-      roleWarehouse: 'Warehouse Staff',
-      roleSeller: 'Sales Rep',
-      roleConsignee: 'Consignee',
+      roleAdmin: 'Admin',
+      roleWarehouse: 'Warehouse',
+      roleSeller: 'Sales',
       demoAdminBtn: 'Try as Admin (Demo)',
       demoWarehouseBtn: 'Try as Warehouse (Demo)',
     },
@@ -634,10 +631,9 @@ export const dictionaries: Record<Locale, Dictionary> = {
       backToCalc: 'Voltar para Calculadora',
       signOut: 'Sair',
       invalidCredentials: 'Credenciais inválidas',
-      roleAdmin: 'Administrador',
+      roleAdmin: 'Admin',
       roleWarehouse: 'Estoque',
-      roleSeller: 'Vendedor',
-      roleConsignee: 'Consignatário',
+      roleSeller: 'Vendas',
       demoAdminBtn: 'Testar como Admin (Demo)',
       demoWarehouseBtn: 'Testar como Estoque (Demo)',
     },
@@ -830,10 +826,9 @@ export const dictionaries: Record<Locale, Dictionary> = {
       backToCalc: 'Retour à la Calculatrice',
       signOut: 'Déconnexion',
       invalidCredentials: 'Identifiants invalides',
-      roleAdmin: 'Administrateur',
-      roleWarehouse: 'Magasinier',
-      roleSeller: 'Vendeur',
-      roleConsignee: 'Consignataire',
+      roleAdmin: 'Admin',
+      roleWarehouse: 'Entrepôt',
+      roleSeller: 'Ventes',
       demoAdminBtn: 'Tester Admin (Démo)',
       demoWarehouseBtn: 'Tester Magasinier (Démo)',
     },

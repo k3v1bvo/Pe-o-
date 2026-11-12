@@ -32,11 +32,10 @@ interface NavItem {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   adminOnly?: boolean;
-  allowedRoles?: ('admin' | 'warehouse' | 'seller' | 'consignee')[];
+  allowedRoles?: ('admin' | 'warehouse' | 'seller')[];
 }
 
-const CONSIGNEE_ALLOWED_PATHS = ['/consignments', '/account'];
-const SELLER_ALLOWED_PATHS = ['/sales', '/account'];
+const SELLER_ALLOWED_PATHS = ['/consignments', '/sales', '/account'];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -46,15 +45,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const isAdmin = profile?.role === 'admin';
   const isSeller = profile?.role === 'seller';
-  const isConsignee = profile?.role === 'consignee';
 
   useEffect(() => {
-    if (isConsignee && !CONSIGNEE_ALLOWED_PATHS.some((p) => pathname.startsWith(p))) {
+    if (isSeller && !SELLER_ALLOWED_PATHS.some((p) => pathname.startsWith(p))) {
       router.replace('/consignments');
-    } else if (isSeller && !SELLER_ALLOWED_PATHS.some((p) => pathname.startsWith(p))) {
-      router.replace('/sales');
     }
-  }, [isConsignee, isSeller, pathname, router]);
+  }, [isSeller, pathname, router]);
 
   const navItems: NavItem[] = [
     {
@@ -79,13 +75,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       href: '/sales',
       label: t.nav.sales,
       icon: ShoppingBag,
-      allowedRoles: ['admin', 'warehouse', 'seller'],
+      allowedRoles: ['admin', 'seller'],
     },
     {
       href: '/consignments',
       label: t.nav.consignments,
       icon: HandCoins,
-      allowedRoles: ['admin', 'warehouse', 'consignee'],
+      allowedRoles: ['admin', 'seller'],
     },
     { href: '/pricing', label: t.nav.pricing, icon: Tags, adminOnly: true },
     {
@@ -117,8 +113,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     ? t.auth.roleAdmin
     : isSeller
     ? t.auth.roleSeller
-    : isConsignee
-    ? t.auth.roleConsignee
     : t.auth.roleWarehouse;
 
   const handleLockToCalculator = async () => {
@@ -148,8 +142,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'
               : isSeller
               ? 'bg-teal-500/15 text-teal-400 border border-teal-500/25'
-              : isConsignee
-              ? 'bg-sky-500/15 text-sky-400 border border-sky-500/25'
               : 'bg-amber-500/15 text-amber-400 border border-amber-500/25'
           }`}
         >
@@ -157,8 +149,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Shield className="w-4 h-4" />
           ) : isSeller ? (
             <ShoppingBag className="w-4 h-4" />
-          ) : isConsignee ? (
-            <HandCoins className="w-4 h-4" />
           ) : (
             <Warehouse className="w-4 h-4" />
           )}
@@ -218,12 +208,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               type="button"
               onClick={() => setDemoUser('warehouse')}
               className={`flex-1 py-1.5 text-[11px] font-medium rounded-xl border cursor-pointer transition-colors ${
-                !isAdmin
+                !isAdmin && !isSeller
                   ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
                   : 'bg-white/[0.03] border-white/[0.07] text-zinc-400'
               }`}
             >
               Almacén
+            </button>
+            <button
+              type="button"
+              onClick={() => setDemoUser('seller')}
+              className={`flex-1 py-1.5 text-[11px] font-medium rounded-xl border cursor-pointer transition-colors ${
+                isSeller
+                  ? 'bg-teal-500/20 border-teal-500/40 text-teal-300'
+                  : 'bg-white/[0.03] border-white/[0.07] text-zinc-400'
+              }`}
+            >
+              Ventas
             </button>
           </div>
         )}

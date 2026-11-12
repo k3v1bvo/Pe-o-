@@ -170,7 +170,7 @@ function getInitialDemoDb(): DemoDb {
       {
         id: 'demo-warehouse-id',
         email: 'almacen@local.test',
-        name: 'Almacenista (Demo)',
+        name: 'Almacén (Demo)',
         role: 'warehouse',
         active: true,
         created_at: now,
@@ -178,16 +178,8 @@ function getInitialDemoDb(): DemoDb {
       {
         id: 'demo-seller-id',
         email: 'ventas@local.test',
-        name: 'Vendedor (Demo)',
+        name: 'Ventas (Demo)',
         role: 'seller',
-        active: true,
-        created_at: now,
-      },
-      {
-        id: 'demo-consignee-id',
-        email: 'socio@local.test',
-        name: 'Concesionario (Demo)',
-        role: 'consignee',
         active: true,
         created_at: now,
       },

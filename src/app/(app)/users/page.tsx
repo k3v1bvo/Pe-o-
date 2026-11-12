@@ -1,9 +1,22 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Users, UserPlus, Copy, Check, Trash2, Link2, ShieldAlert, Ban, CheckCircle2 } from 'lucide-react';
+import {
+  Users,
+  UserPlus,
+  Copy,
+  Check,
+  Trash2,
+  Link2,
+  ShieldAlert,
+  Ban,
+  CheckCircle2,
+  KeyRound,
+  Search,
+} from 'lucide-react';
 import { useApp } from '@/components/providers/app-provider';
+import { createClient } from '@/lib/supabase/client';
 import {
   createInvitation,
   deleteInvitation,
@@ -15,7 +28,7 @@ import {
 import type { Invitation, Profile, UserRole } from '@/types/database';
 
 export default function UsersPage() {
-  const { profile, t } = useApp();
+  const { profile, t, isDemo } = useApp();
   const router = useRouter();
   const isAdmin = profile?.role === 'admin';
 
@@ -24,10 +37,13 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
 
   const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState<UserRole>('consignee');
+  const [inviteRole, setInviteRole] = useState<UserRole>('seller');
   const [creatingInvite, setCreatingInvite] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [actionError, setActionError] = useState('');
+  const [actionSuccess, setActionSuccess] = useState('');
+  const [resettingUserId, setResettingUserId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     if (profile && !isAdmin) {
@@ -82,7 +98,7 @@ export default function UsersPage() {
       const msg = err instanceof Error ? err.message : 'No se pudo generar la invitación.';
       setActionError(
         msg.includes('invitations_role_check')
-          ? 'Falta aplicar la migración SQL de Supabase para habilitar el rol Concesionario (ver supabase/migrations/20261112_consignee_role_and_security.sql).'
+          ? 'Falta aplicar la migración SQL de Supabase para validar los 3 perfiles (ver supabase/migrations/20261112_three_roles_cleanup.sql).'
           : msg
       );
     } finally {
@@ -98,6 +114,49 @@ export default function UsersPage() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  const handleSendPasswordReset = async (u: Profile) => {
+    setActionError('');
+    setActionSuccess('');
+    if (isDemo) {
+      setActionError('En modo demo local no se envían correos reales; prueba con Supabase.');
+      return;
+    }
+    if (!u.email) {
+      setActionError('Este usuario no tiene un correo registrado.');
+      return;
+    }
+    setResettingUserId(u.id);
+    try {
+      const supabase = createClient();
+      const redirectTo = `${window.location.origin}/auth/callback?next=/account?recovery=1`;
+      const { error } = await supabase.auth.resetPasswordForEmail(u.email, {
+        redirectTo,
+      });
+      if (error) {
+        setActionError(error.message);
+        return;
+      }
+      setActionSuccess(
+        `Correo de reseteo enviado a ${u.email}. Al abrir el link entrará directo a poner nueva contraseña.`
+      );
+    } catch (err) {
+      console.error(err);
+      setActionError('No se pudo enviar el enlace de recuperación.');
+    } finally {
+      setResettingUserId(null);
+    }
+  };
+
+  const filteredProfiles = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return profiles;
+    return profiles.filter(
+      (u) =>
+        (u.name || '').toLowerCase().includes(q) ||
+        (u.email || '').toLowerCase().includes(q)
+    );
+  }, [profiles, searchQuery]);
+
   if (!isAdmin || loading) return <div className="text-zinc-400 text-sm">{t.app.loading}</div>;
 
   return (
@@ -107,31 +166,25 @@ export default function UsersPage() {
         <p className="text-sm text-zinc-400 mt-1">{t.users.subtitle}</p>
       </div>
 
-      {/* Role Guide */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      {/* Role Guide (3 Roles Only) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {[
           {
-            title: t.auth.roleConsignee,
-            tag: 'Entregas a Concesión',
-            desc: 'Solo ve lo que llevó, fecha, precio que le diste, sus abonos, saldo y puede pedir 50tas.',
-            tone: 'border-sky-500/25 bg-sky-500/[0.05] text-sky-300',
-          },
-          {
             title: t.auth.roleSeller,
-            tag: 'Ventas Directas',
-            desc: 'Registra ventas en mostrador/mayoreo con tus precios sin ver proveedores, gastos ni costos.',
+            tag: 'Concesión, Ventas y 50tas',
+            desc: 'Ve lo que llevó, fecha/hora, precio de venta acordado, abonos, saldo, registra ventas y pide 50tas. Nunca ve costos reales ni proveedores.',
             tone: 'border-teal-500/25 bg-teal-500/[0.05] text-teal-300',
           },
           {
             title: t.auth.roleWarehouse,
             tag: 'Bodega y Pesaje',
-            desc: 'Pesa lotes, sube fotos, arma bolsas (50/30/100) y registra gastos sin ver tu costo ni ganancia.',
+            desc: 'Pesa lotes, sube fotos, arma bolsas (50/30/100) y registra gastos operativos sin ver costos ni ganancias.',
             tone: 'border-amber-500/25 bg-amber-500/[0.05] text-amber-300',
           },
           {
             title: t.auth.roleAdmin,
             tag: 'Dueño / Total',
-            desc: 'Acceso completo a costos reales (ej. 850/kg), margen neto, caja, usuarios y ajustes.',
+            desc: 'Control total: costos reales (ej. 850/kg), margen neto, flujo de caja, concesiones, entregas, usuarios y ajustes.',
             tone: 'border-emerald-500/25 bg-emerald-500/[0.05] text-emerald-300',
           },
         ].map((card) => (
@@ -164,28 +217,44 @@ export default function UsersPage() {
           </div>
         )}
 
-        <form onSubmit={handleCreateInvite} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <input
-            type="email"
-            value={inviteEmail}
-            onChange={(e) => setInviteEmail(e.target.value)}
-            placeholder="Correo (opcional: dejar vacío para cualquiera)"
-            className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-white"
-          />
-          <select
-            value={inviteRole}
-            onChange={(e) => setInviteRole(e.target.value as UserRole)}
-            className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-white"
-          >
-            <option value="consignee">{t.auth.roleConsignee} (Concesiones y pedir 50tas)</option>
-            <option value="seller">{t.auth.roleSeller} (Solo ventas directas)</option>
-            <option value="warehouse">{t.auth.roleWarehouse} (Bodega y pesaje sin costos)</option>
-            <option value="admin">{t.auth.roleAdmin} (Control total y costos)</option>
-          </select>
+        {actionSuccess && (
+          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <span>{actionSuccess}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleCreateInvite} className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+          <div>
+            <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+              Correo del invitado (opcional)
+            </label>
+            <input
+              type="email"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              placeholder="Ej: juan@correo.com (o dejar vacío)"
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-zinc-600"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+              Perfil asignado <span className="text-rose-400">*</span>
+            </label>
+            <select
+              value={inviteRole}
+              onChange={(e) => setInviteRole(e.target.value as UserRole)}
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-white"
+            >
+              <option value="seller">{t.auth.roleSeller} (Concesiones, ventas y pedir 50tas)</option>
+              <option value="warehouse">{t.auth.roleWarehouse} (Bodega y pesaje sin costos)</option>
+              <option value="admin">{t.auth.roleAdmin} (Control total y costos)</option>
+            </select>
+          </div>
           <button
             type="submit"
             disabled={creatingInvite}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-semibold text-sm cursor-pointer disabled:opacity-60"
+            className="h-[42px] inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-semibold text-sm cursor-pointer disabled:opacity-60"
           >
             <Link2 className="w-4 h-4" />
             <span>Generar Link de Invitación</span>
@@ -211,8 +280,6 @@ export default function UsersPage() {
                           ? t.auth.roleAdmin
                           : inv.role === 'seller'
                           ? t.auth.roleSeller
-                          : inv.role === 'consignee'
-                          ? t.auth.roleConsignee
                           : t.auth.roleWarehouse}
                       </span>
                       <span
@@ -270,7 +337,27 @@ export default function UsersPage() {
       </div>
 
       {/* Existing Users */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 overflow-x-auto">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-white">Cuentas Registradas ({profiles.length})</h2>
+            <p className="text-xs text-zinc-400">
+              Cambia el perfil, suspende cuentas o envía un enlace de reseteo si olvidaron su contraseña.
+            </p>
+          </div>
+          <div className="relative flex items-center bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 w-full sm:w-64">
+            <Search className="w-3.5 h-3.5 text-zinc-500 mr-2 shrink-0" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Buscar por nombre o correo..."
+              className="w-full bg-transparent text-xs text-white placeholder:text-zinc-600 focus:outline-none"
+            />
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
         <table className="w-full text-sm text-left">
           <thead className="text-xs text-zinc-400 border-b border-zinc-800">
             <tr>
@@ -278,17 +365,21 @@ export default function UsersPage() {
               <th className="py-2 pr-4">{t.users.email}</th>
               <th className="py-2 pr-4">{t.users.role}</th>
               <th className="py-2 pr-4">Estado</th>
+              <th className="py-2 pr-4">Contraseña</th>
               <th className="py-2 pr-4">{t.users.createdAt}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-800/70">
-            {profiles.map((u) => {
+            {filteredProfiles.map((u) => {
               const isActive = u.active !== false;
+              const isResetting = resettingUserId === u.id;
               return (
                 <tr key={u.id}>
-                  <td className="py-3 pr-4 font-medium text-white flex items-center gap-2">
-                    <Users className="w-4 h-4 text-emerald-400" />
-                    {u.name}
+                  <td className="py-3 pr-4 font-medium text-white">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>{u.name}</span>
+                    </div>
                   </td>
                   <td className="py-3 pr-4 text-zinc-300">{u.email}</td>
                   <td className="py-3 pr-4">
@@ -307,7 +398,6 @@ export default function UsersPage() {
                       }}
                       className="bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1 text-xs text-zinc-200"
                     >
-                      <option value="consignee">{t.auth.roleConsignee}</option>
                       <option value="seller">{t.auth.roleSeller}</option>
                       <option value="warehouse">{t.auth.roleWarehouse}</option>
                       <option value="admin">{t.auth.roleAdmin}</option>
@@ -352,6 +442,18 @@ export default function UsersPage() {
                       </button>
                     )}
                   </td>
+                  <td className="py-3 pr-4">
+                    <button
+                      type="button"
+                      disabled={isResetting}
+                      onClick={() => handleSendPasswordReset(u)}
+                      title="Enviar enlace por correo para crear nueva contraseña"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/25 text-xs text-amber-300 cursor-pointer disabled:opacity-50 whitespace-nowrap"
+                    >
+                      <KeyRound className="w-3 h-3" />
+                      <span>{isResetting ? 'Enviando...' : 'Resetear Clave'}</span>
+                    </button>
+                  </td>
                   <td className="py-3 pr-4 text-xs text-zinc-500">
                     {new Date(u.created_at).toLocaleDateString()}
                   </td>
@@ -360,6 +462,7 @@ export default function UsersPage() {
             })}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );
