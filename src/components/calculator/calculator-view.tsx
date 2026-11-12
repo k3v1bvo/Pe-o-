@@ -287,10 +287,10 @@ export function CalculatorView() {
 
   const keyBase =
     'aspect-square w-full rounded-full flex items-center justify-center select-none cursor-pointer transition-all duration-100 active:scale-[0.93] active:brightness-125 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40';
-  const keyFunc = `${keyBase} bg-[#a5a5a5] hover:bg-[#b8b8b8] text-[#050505] text-[22px] font-medium`;
-  const keyNum = `${keyBase} bg-[#333336] hover:bg-[#444448] text-white text-[28px] font-normal`;
+  const keyFunc = `${keyBase} bg-[#a5a5a5] hover:bg-[#b8b8b8] text-[#050505] text-[clamp(18px,4.8vw,22px)] font-medium`;
+  const keyNum = `${keyBase} bg-[#333336] hover:bg-[#444448] text-white text-[clamp(22px,6.5vw,28px)] font-normal`;
   const keyOp = (op: Exclude<Operator, null>) =>
-    `${keyBase} text-[28px] font-medium ${
+    `${keyBase} text-[clamp(24px,6.5vw,28px)] font-medium ${
       operator === op && waitingForOperand
         ? 'bg-white text-[#ff9f0a]'
         : 'bg-[#ff9f0a] hover:bg-[#ffb340] text-white'
@@ -299,10 +299,10 @@ export function CalculatorView() {
   const quote = UNLOCK_QUOTES[locale];
 
   return (
-    <div className="min-h-[100dvh] w-full bg-black sm:bg-[#0b0b0d] text-white flex items-stretch sm:items-center justify-center sm:p-6 relative overflow-hidden">
+    <div className="min-h-[100dvh] w-full bg-black sm:bg-[#0b0b0d] text-white flex items-stretch sm:items-center justify-center sm:p-4 relative overflow-hidden">
       {/* Calculator Chassis — full-screen native on mobile, precision handset frame on desktop */}
       <div
-        className="w-full sm:max-w-[368px] min-h-[100dvh] sm:min-h-[710px] bg-black sm:rounded-[44px] sm:ring-1 sm:ring-white/[0.12] sm:shadow-[0_32px_90px_rgba(0,0,0,0.9)] flex flex-col justify-between px-5 pt-4 pb-6 sm:px-6 sm:pt-5 sm:pb-7 relative z-10"
+        className="w-full max-w-[400px] mx-auto sm:max-w-[368px] h-[100dvh] sm:h-auto sm:min-h-[min(660px,88dvh)] sm:max-h-[92dvh] bg-black sm:rounded-[44px] sm:ring-1 sm:ring-white/[0.12] sm:shadow-[0_32px_90px_rgba(0,0,0,0.9)] flex flex-col justify-between px-4 pt-3 pb-4 sm:px-6 sm:pt-5 sm:pb-6 relative z-10"
         onClick={() => {
           if (showLangMenu) setShowLangMenu(false);
         }}
@@ -373,7 +373,7 @@ export function CalculatorView() {
         </div>
 
         {/* Display / History Container */}
-        <div className="flex-1 flex flex-col justify-end relative min-h-[168px] py-4">
+        <div className="flex-1 flex flex-col justify-end relative min-h-[104px] py-2 sm:py-4">
           {showHistory ? (
             <div className="absolute inset-0 bg-[#111113]/95 rounded-3xl border border-white/[0.08] p-4 flex flex-col justify-between z-20">
               <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
@@ -431,8 +431,8 @@ export function CalculatorView() {
           </div>
         </div>
 
-        {/* Authentic 4x5 Tactile Circular Keypad */}
-        <div className="grid grid-cols-4 gap-3 pt-2">
+        {/* Authentic 4x5 Tactile Circular Keypad (height-aware so short phones/laptops never clip) */}
+        <div className="w-full max-w-[min(100%,calc((100dvh-190px)*0.78))] sm:max-w-[min(100%,calc((92dvh-215px)*0.78))] mx-auto grid grid-cols-4 gap-2.5 sm:gap-3 pt-1">
           <button type="button" onClick={clearAll} className={keyFunc}>
             {display === '0' && prevValue === null ? 'AC' : 'C'}
           </button>
