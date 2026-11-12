@@ -201,16 +201,21 @@ export default function GradingPage() {
               {t.grading.weightPerBag}
             </label>
             <p className="text-[11px] text-zinc-500 mb-1.5">Gramos que pesa 1 bolsa individual.</p>
-            <input
-              type="number"
-              step="0.1"
-              min="0.1"
-              required
-              value={weightG}
-              onChange={(e) => setWeightG(e.target.value)}
-              placeholder="Ej: 27"
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-white font-mono"
-            />
+            <div className="relative">
+              <input
+                type="number"
+                step="0.1"
+                min="0.1"
+                required
+                value={weightG}
+                onChange={(e) => setWeightG(e.target.value)}
+                placeholder="Ej: 27"
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-3.5 pr-9 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/15"
+              />
+              <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-mono text-zinc-500">
+                g
+              </span>
+            </div>
           </div>
 
           <div>
@@ -223,7 +228,7 @@ export default function GradingPage() {
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
               placeholder="Ej: 10"
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-white font-mono"
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/15"
             />
           </div>
 
@@ -231,16 +236,21 @@ export default function GradingPage() {
             <div>
               <label className="block text-xs font-medium text-zinc-300 mb-1">{t.grading.bagPrice}</label>
               <p className="text-[11px] text-zinc-500 mb-1.5">Precio de venta al público de cada bolsa.</p>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                required
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                placeholder="Ej: 50"
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-white font-mono"
-              />
+              <div className="relative">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-mono text-zinc-500">
+                  $
+                </span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  required
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  placeholder="Ej: 50"
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-7 pr-3 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/15"
+                />
+              </div>
             </div>
           ) : (
             <div className="flex items-end pb-2 text-xs text-zinc-500">
@@ -249,14 +259,36 @@ export default function GradingPage() {
           )}
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-          <span className="text-xs text-zinc-400">
-            Total a empaquetar:{' '}
-            <strong className="text-emerald-300 font-mono">
-              {((parseFloat(weightG) || 0) * (parseInt(quantity, 10) || 0)).toFixed(1)} g
-            </strong>{' '}
-            ({parseInt(quantity, 10) || 0} bolsas × {parseFloat(weightG) || 0}g)
-          </span>
+        {(() => {
+          const totalToPack = (parseFloat(weightG) || 0) * (parseInt(quantity, 10) || 0);
+          const remaining = selectedLot ? Number(selectedLot.actual_weight_g) - totalGradedG : 0;
+          const afterPack = remaining - totalToPack;
+          const overLimit = selectedLot ? afterPack < 0 : false;
+          return (
+            <div
+              className={`flex flex-wrap items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl border text-xs ${
+                overLimit
+                  ? 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+                  : 'bg-white/[0.03] border-white/[0.08] text-zinc-300'
+              }`}
+            >
+              <span>
+                Total a empaquetar:{' '}
+                <strong className="text-emerald-300 font-mono">{totalToPack.toFixed(1)} g</strong> (
+                {parseInt(quantity, 10) || 0} bolsas × {parseFloat(weightG) || 0}g)
+              </span>
+              {selectedLot && (
+                <span className="font-mono">
+                  {overLimit
+                    ? `Excede disponible por ${Math.abs(afterPack).toFixed(1)}g`
+                    : `Quedarán ${afterPack.toFixed(1)}g sin embolsar`}
+                </span>
+              )}
+            </div>
+          );
+        })()}
+
+        <div className="flex justify-end pt-1">
           <button
             type="submit"
             disabled={saving || !selectedLotId}

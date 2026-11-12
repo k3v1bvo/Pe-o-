@@ -677,12 +677,17 @@ export default function ConsignmentsPage() {
           onSubmit={handleGiveSubmit}
           className="obsidian-card rounded-2xl p-5 sm:p-6 space-y-4 !border-emerald-500/30"
         >
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-white">Nueva Entrega a Concesión</h2>
+          <div className="flex items-center justify-between border-b border-white/[0.07] pb-3.5">
+            <div>
+              <h2 className="text-sm font-semibold text-white">Nueva Entrega a Concesión</h2>
+              <p className="text-xs text-zinc-400 mt-0.5">
+                Selecciona quién lleva el material, de qué lote sale y el monto acordado.
+              </p>
+            </div>
             <button
               type="button"
               onClick={() => setShowGiveForm(false)}
-              className="text-xs text-zinc-400 hover:text-white cursor-pointer"
+              className="text-xs text-zinc-400 hover:text-white px-2.5 py-1 rounded-lg hover:bg-white/[0.06] cursor-pointer"
             >
               {t.app.close}
             </button>
@@ -759,16 +764,16 @@ export default function ConsignmentsPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
-              <label className="block text-xs text-zinc-400 mb-1.5">Lote origen (opcional)</label>
+              <label className="block text-xs font-medium text-zinc-300 mb-1.5">Lote origen (opcional)</label>
               <select
                 value={selectedLotId}
                 onChange={(e) => handleLotChange(e.target.value)}
-                className="w-full bg-[#060807] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white"
+                className="w-full bg-[#060807] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/15"
               >
                 <option value="">-- Sin lote específico --</option>
                 {lots.map((l) => (
                   <option key={l.id} value={l.id}>
-                    {l.strain?.name || 'Producto'} · {l.supplier}
+                    {l.strain?.name || 'Producto'} · {l.supplier} ({Number(l.actual_weight_g).toFixed(0)}g)
                   </option>
                 ))}
               </select>
@@ -778,7 +783,9 @@ export default function ConsignmentsPage() {
               <label className="block text-xs font-medium text-zinc-300 mb-1">
                 Cantidad ({activePreset.unitLabel})
               </label>
-              <p className="text-[11px] text-zinc-500 mb-1.5">Ej: 4 si son 4 kilos, 10 si son 10 bolsas.</p>
+              <p className="text-[11px] text-zinc-500 mb-1.5">
+                Equivale a <span className="font-mono text-zinc-300">{((parseFloat(giveQty) || 0) * activePreset.gramsPerUnit).toFixed(0)}g</span> totales.
+              </p>
               <input
                 type="number"
                 step="0.01"
@@ -786,39 +793,49 @@ export default function ConsignmentsPage() {
                 required
                 value={giveQty}
                 onChange={(e) => handleQtyOrUnitPriceChange(e.target.value, giveUnitPrice)}
-                className="w-full bg-[#060807] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white font-mono"
+                className="w-full bg-[#060807] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/15"
               />
             </div>
 
             <div>
               <label className="block text-xs font-medium text-zinc-300 mb-1">
-                A cuánto se la vendemos (c/u)
+                Precio acordado (c/u)
               </label>
-              <p className="text-[11px] text-zinc-500 mb-1.5">Precio acordado por unidad/kilo (él SÍ lo ve).</p>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={giveUnitPrice}
-                onChange={(e) => handleQtyOrUnitPriceChange(giveQty, e.target.value)}
-                placeholder="Ej: 1150"
-                className="w-full bg-[#060807] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white font-mono"
-              />
+              <p className="text-[11px] text-zinc-500 mb-1.5">Precio por unidad/kilo (él SÍ lo ve).</p>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-zinc-500">
+                  $
+                </span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={giveUnitPrice}
+                  onChange={(e) => handleQtyOrUnitPriceChange(giveQty, e.target.value)}
+                  placeholder="Ej: 850"
+                  className="w-full bg-[#060807] border border-white/10 rounded-xl pl-7 pr-3 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/15"
+                />
+              </div>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1">Total que debe pagar</label>
-              <p className="text-[11px] text-zinc-500 mb-1.5">Se calcula automático: cantidad × precio.</p>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                required
-                value={giveTotal}
-                onChange={(e) => setGiveTotal(e.target.value)}
-                placeholder="Ej: 4600"
-                className="w-full bg-[#060807] border border-emerald-500/40 rounded-xl px-3 py-2.5 text-sm text-emerald-300 font-semibold font-mono"
-              />
+              <label className="block text-xs font-medium text-zinc-300 mb-1">Total a cobrar</label>
+              <p className="text-[11px] text-zinc-500 mb-1.5">Automático: cantidad × precio.</p>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-emerald-400">
+                  $
+                </span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  required
+                  value={giveTotal}
+                  onChange={(e) => setGiveTotal(e.target.value)}
+                  placeholder="Ej: 850"
+                  className="w-full bg-[#060807] border border-emerald-500/40 rounded-xl pl-7 pr-3 py-2.5 text-sm text-emerald-300 font-semibold font-mono focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20"
+                />
+              </div>
             </div>
           </div>
 

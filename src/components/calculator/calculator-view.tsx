@@ -572,7 +572,7 @@ export function CalculatorView() {
       {/* Clean Web Top Navigation Bar (Desktop & Tablet) */}
       <header className="hidden sm:flex items-center justify-between w-full max-w-5xl mx-auto px-6 pt-4 pb-1 relative z-20">
         <div className="flex items-center gap-2.5">
-          <BrandLogo compact size="sm" />
+          <BrandLogo variant="stealth" compact size="sm" />
           <div>
             <div className="text-sm font-semibold tracking-tight text-zinc-100">
               {t.app.publicTitle}

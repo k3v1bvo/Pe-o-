@@ -15,7 +15,7 @@ import {
   Users,
   Settings,
   KeyRound,
-  Calculator,
+  Lock,
   LogOut,
   Menu,
   X,
@@ -250,7 +250,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           onClick={handleLockToCalculator}
           className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-amber-500/12 hover:bg-amber-500/20 border border-amber-500/25 text-amber-300 text-sm font-medium transition-colors cursor-pointer"
         >
-          <Calculator className="w-4 h-4" />
+          <Lock className="w-4 h-4" />
           <span>{t.nav.lockCalculator}</span>
         </button>
 
@@ -298,7 +298,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             onClick={handleLockToCalculator}
             className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/12 hover:bg-amber-500/20 border border-amber-500/25 text-amber-300 text-xs font-medium transition-colors cursor-pointer"
           >
-            <Calculator className="w-3.5 h-3.5" />
+            <Lock className="w-3.5 h-3.5" />
             <span>{t.nav.lockCalculator}</span>
           </button>
         </header>
@@ -321,7 +321,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             aria-label={t.nav.lockCalculator}
             className="p-2 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300"
           >
-            <Calculator className="w-4 h-4" />
+            <Lock className="w-4 h-4" />
           </button>
         </header>
 

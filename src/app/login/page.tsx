@@ -4,7 +4,6 @@ import React, { useState, useEffect, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
-  Calculator,
   Lock,
   Mail,
   ArrowLeft,
@@ -207,7 +206,7 @@ export default function LoginPage() {
             href="/"
             className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-xs font-medium text-zinc-300 transition-colors"
           >
-            <Calculator className="w-3.5 h-3.5 text-amber-400" />
+            <Lock className="w-3.5 h-3.5 text-amber-400" />
             <span>{t.auth.backToCalc}</span>
           </Link>
         </div>

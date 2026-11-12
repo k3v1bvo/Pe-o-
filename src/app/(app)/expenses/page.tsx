@@ -113,38 +113,47 @@ export default function ExpensesPage() {
       {/* Add Expense Form */}
       <form
         onSubmit={handleCreate}
-        className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 space-y-4"
+        className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 sm:p-6 space-y-4"
       >
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-xs font-medium text-zinc-300 mb-1">{t.expenses.category}</label>
-            <p className="text-[11px] text-zinc-500 mb-1.5">En qué área se usó el dinero.</p>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value as ExpenseCategory)}
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-white"
-            >
-              {categories.map((cat) => (
-                <option key={cat} value={cat}>
-                  {t.expenses.categories[cat]}
-                </option>
-              ))}
-            </select>
+        <div>
+          <label className="block text-xs font-medium text-zinc-300 mb-2">{t.expenses.category}</label>
+          <div className="flex flex-wrap gap-2">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setCategory(cat)}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-medium border transition-colors cursor-pointer ${
+                  category === cat
+                    ? 'bg-emerald-500/20 border-emerald-400 text-emerald-200'
+                    : 'bg-zinc-950 border-white/10 text-zinc-300 hover:border-white/25'
+                }`}
+              >
+                {t.expenses.categories[cat]}
+              </button>
+            ))}
           </div>
+        </div>
 
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-medium text-zinc-300 mb-1">{t.expenses.amount}</label>
             <p className="text-[11px] text-zinc-500 mb-1.5">Cuánto dinero salió de caja.</p>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              required
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="Ej: 150"
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-white font-mono"
-            />
+            <div className="relative">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-mono text-zinc-500">
+                $
+              </span>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                required
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="Ej: 150"
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-7 pr-3 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/15"
+              />
+            </div>
           </div>
 
           <div>
@@ -156,7 +165,7 @@ export default function ExpensesPage() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Ej: 100 bolsas ziploc, taxi centro..."
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-zinc-600"
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/15"
             />
           </div>
         </div>

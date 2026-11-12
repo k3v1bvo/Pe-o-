@@ -217,16 +217,34 @@ export default function InventoryPage() {
       {showForm && (
         <form
           onSubmit={handleCreateLot}
-          className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 space-y-4"
+          className="bg-zinc-900/95 border border-emerald-500/25 rounded-2xl p-5 sm:p-6 space-y-5 shadow-[0_20px_50px_rgba(0,0,0,0.45)]"
         >
+          <div className="flex items-center justify-between border-b border-white/[0.07] pb-3.5">
+            <div>
+              <h2 className="text-sm font-semibold text-white">Registrar Ingreso a Almacén</h2>
+              <p className="text-xs text-zinc-400 mt-0.5">
+                Anota cuánto venía declarado, cuánto pesó en báscula y adjunta fotos si las tienes.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              className="text-xs text-zinc-400 hover:text-white px-2.5 py-1 rounded-lg hover:bg-white/[0.06] cursor-pointer"
+            >
+              {t.app.close}
+            </button>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-zinc-400 mb-1.5">{t.inventory.strain}</label>
+              <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+                {t.inventory.strain} <span className="text-rose-400">*</span>
+              </label>
               <select
                 value={strainId}
                 onChange={(e) => setStrainId(e.target.value)}
                 required
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-white"
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/15 transition-all"
               >
                 {strains.map((s) => (
                   <option key={s.id} value={s.id}>
@@ -237,37 +255,40 @@ export default function InventoryPage() {
             </div>
 
             <div>
-              <label className="block text-xs text-zinc-400 mb-1.5">{t.inventory.supplier}</label>
+              <label className="block text-xs font-medium text-zinc-300 mb-1.5">{t.inventory.supplier}</label>
               <input
                 type="text"
                 value={supplier}
                 onChange={(e) => setSupplier(e.target.value)}
-                placeholder="Ej: Envío Norte - 4 bolsas"
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-white"
+                placeholder="Ej: Envío Norte - 3 paquetes"
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/15 transition-all"
               />
             </div>
           </div>
 
           {/* Unit Shortcuts */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-zinc-400">{t.inventory.quickUnit}</span>
-              <span className="text-xs text-zinc-500">{t.inventory.bagCountHint}</span>
+          <div className="p-3.5 rounded-xl bg-zinc-950/70 border border-white/[0.06] space-y-2.5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs font-medium text-zinc-300">{t.inventory.quickUnit}</span>
+              <span className="text-[11px] text-zinc-500">{t.inventory.bagCountHint}</span>
             </div>
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={() => setDeclaredWeightG('0')}
-                className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs text-zinc-300 cursor-pointer"
+                onClick={() => {
+                  setDeclaredWeightG('0');
+                  setActualWeightG('0');
+                }}
+                className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs text-zinc-300 cursor-pointer transition-colors"
               >
-                0g (Reset)
+                0g (Reiniciar)
               </button>
               {INVENTORY_UNITS.map((u) => (
                 <button
                   key={u.key}
                   type="button"
                   onClick={() => addUnitShortcut(u.grams)}
-                  className="px-3 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-xs text-emerald-300 cursor-pointer"
+                  className="px-3 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-xs font-medium text-emerald-300 cursor-pointer transition-colors"
                 >
                   + {u.grams}g
                 </button>
@@ -277,55 +298,111 @@ export default function InventoryPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1">
-                {t.inventory.declaredWeight} <span className="text-rose-400">*</span>
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-medium text-zinc-300">
+                  {t.inventory.declaredWeight} <span className="text-rose-400">*</span>
+                </label>
+                <span className="text-[11px] font-mono text-zinc-400">
+                  {((parseFloat(declaredWeightG) || 0) / 1000).toFixed(2)} kg
+                </span>
+              </div>
               <p className="text-[11px] text-zinc-500 mb-1.5">
-                Peso que dice el envío o proveedor (ej: 4 kilos = 4000 g).
+                Peso que dice el envío o proveedor (ej: 3 kilos = 3000 g).
               </p>
-              <input
-                type="number"
-                step="0.01"
-                required
-                value={declaredWeightG}
-                onChange={(e) => setDeclaredWeightG(e.target.value)}
-                placeholder="Ej: 4000"
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-white font-mono"
-              />
+              <div className="relative">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  required
+                  value={declaredWeightG}
+                  onChange={(e) => setDeclaredWeightG(e.target.value)}
+                  placeholder="Ej: 3000"
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-3.5 pr-10 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/15 transition-all"
+                />
+                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-mono text-zinc-500">
+                  g
+                </span>
+              </div>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1">
-                {t.inventory.actualWeight} <span className="text-rose-400">*</span>
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-medium text-zinc-300">
+                  {t.inventory.actualWeight} <span className="text-rose-400">*</span>
+                </label>
+                <span className="text-[11px] font-mono text-emerald-400">
+                  {((parseFloat(actualWeightG) || 0) / 1000).toFixed(2)} kg
+                </span>
+              </div>
               <p className="text-[11px] text-zinc-500 mb-1.5">
-                Peso real que marca tu báscula al recibirlo (detecta merma).
+                Peso real en báscula. Ajusta directo o resta merma por kilo:
               </p>
-              <input
-                type="number"
-                step="0.01"
-                required
-                value={actualWeightG}
-                onChange={(e) => setActualWeightG(e.target.value)}
-                placeholder="Ej: 3985"
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-white font-mono"
-              />
+              <div className="relative">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  required
+                  value={actualWeightG}
+                  onChange={(e) => setActualWeightG(e.target.value)}
+                  placeholder="Ej: 2940"
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-3.5 pr-10 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/15 transition-all"
+                />
+                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-mono text-zinc-500">
+                  g
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {[
+                  { label: 'Exacto', lossPerKg: 0 },
+                  { label: '-10g/kg', lossPerKg: 10 },
+                  { label: '-20g/kg', lossPerKg: 20 },
+                  { label: '-30g/kg', lossPerKg: 30 },
+                ].map((opt) => (
+                  <button
+                    key={opt.lossPerKg}
+                    type="button"
+                    onClick={() => {
+                      const decl = parseFloat(declaredWeightG) || 0;
+                      const kilos = decl / 1000;
+                      const nextActual = Math.max(0, Number((decl - kilos * opt.lossPerKg).toFixed(2)));
+                      setActualWeightG(String(nextActual));
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-zinc-800/90 hover:bg-zinc-700 border border-white/[0.06] text-[11px] text-zinc-300 font-mono cursor-pointer transition-colors"
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
           {(() => {
-            const diff = (parseFloat(actualWeightG) || 0) - (parseFloat(declaredWeightG) || 0);
-            if (diff === 0) return null;
+            const decl = parseFloat(declaredWeightG) || 0;
+            const act = parseFloat(actualWeightG) || 0;
+            const diff = act - decl;
             return (
               <div
-                className={`text-xs px-3 py-2 rounded-xl border ${
+                className={`flex flex-wrap items-center justify-between gap-2 text-xs px-3.5 py-2.5 rounded-xl border ${
                   diff < 0
                     ? 'bg-orange-500/10 border-orange-500/30 text-orange-300'
-                    : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                    : diff > 0
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                    : 'bg-white/[0.03] border-white/[0.08] text-zinc-300'
                 }`}
               >
-                Diferencia al recibir: <strong className="font-mono">{diff > 0 ? `+${diff}` : diff}g</strong>{' '}
-                ({diff < 0 ? 'merma detectada' : 'excedente'})
+                <span>
+                  Resumen: <strong className="font-mono text-white">{decl}g</strong> declarados →{' '}
+                  <strong className="font-mono text-white">{act}g</strong> reales
+                </span>
+                <span className="font-mono font-semibold">
+                  {diff === 0
+                    ? 'Sin merma (0g)'
+                    : diff < 0
+                    ? `Merma: ${Math.abs(diff).toFixed(1)}g`
+                    : `Excedente: +${diff.toFixed(1)}g`}
+                </span>
               </div>
             );
           })()}
