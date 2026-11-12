@@ -6,6 +6,7 @@ const PROTECTED_PREFIXES = [
   '/inventory',
   '/grading',
   '/sales',
+  '/consignments',
   '/pricing',
   '/expenses',
   '/photos',

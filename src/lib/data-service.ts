@@ -4,12 +4,17 @@ import { createClient } from '@/lib/supabase/client';
 import { isSupabaseConfigured } from '@/lib/utils';
 import type {
   BagType,
+  Consignment,
+  ConsignmentAdminCost,
+  ConsignmentItemKind,
+  ConsignmentPayment,
   CurrencyConfig,
   Expense,
   ExpenseCategory,
   GradedBag,
   InventoryLot,
   Invitation,
+  LotCost,
   LotPhoto,
   LotStatus,
   PricingBagType,
@@ -34,6 +39,10 @@ interface DemoDb {
   pricingRules: PricingRule[];
   expenses: Expense[];
   profiles: Profile[];
+  lotCosts?: LotCost[];
+  consignments?: Consignment[];
+  consignmentAdminCosts?: ConsignmentAdminCost[];
+  consignmentPayments?: ConsignmentPayment[];
 }
 
 function getInitialDemoDb(): DemoDb {
@@ -166,6 +175,10 @@ function getInitialDemoDb(): DemoDb {
         created_at: now,
       },
     ],
+    lotCosts: [],
+    consignments: [],
+    consignmentAdminCosts: [],
+    consignmentPayments: [],
   };
 }
 
@@ -177,7 +190,14 @@ function readDemoDb(): DemoDb {
     localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify(init));
     return init;
   }
-  return JSON.parse(raw) as DemoDb;
+  const parsed = JSON.parse(raw) as DemoDb;
+  return {
+    ...parsed,
+    lotCosts: parsed.lotCosts ?? [],
+    consignments: parsed.consignments ?? [],
+    consignmentAdminCosts: parsed.consignmentAdminCosts ?? [],
+    consignmentPayments: parsed.consignmentPayments ?? [],
+  };
 }
 
 function writeDemoDb(db: DemoDb) {
@@ -791,5 +811,389 @@ export async function uploadImageFile(file: File, folder = 'greenscale/scales'):
     reader.onerror = () => reject(new Error('No se pudo leer la imagen'));
     reader.readAsDataURL(file);
   });
+}
+
+// ==========================================
+// LOT COSTS (Admin-only)
+// ==========================================
+export async function getLotCosts(): Promise<LotCost[]> {
+  if (!isSupabaseConfigured()) {
+    return readDemoDb().lotCosts ?? [];
+  }
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('lot_costs')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data || []) as LotCost[];
+}
+
+export async function upsertLotCost(input: {
+  lot_id: string;
+  cost_per_kg: number;
+  total_cost: number;
+  notes?: string;
+  created_by: string;
+}): Promise<LotCost> {
+  if (!isSupabaseConfigured()) {
+    const db = readDemoDb();
+    const list = db.lotCosts ?? [];
+    const existing = list.find((c) => c.lot_id === input.lot_id);
+    if (existing) {
+      existing.cost_per_kg = input.cost_per_kg;
+      existing.total_cost = input.total_cost;
+      existing.notes = input.notes || null;
+      writeDemoDb(db);
+      return existing;
+    }
+    const created: LotCost = {
+      id: uuid(),
+      lot_id: input.lot_id,
+      cost_per_kg: input.cost_per_kg,
+      total_cost: input.total_cost,
+      notes: input.notes || null,
+      created_by: input.created_by,
+      created_at: new Date().toISOString(),
+    };
+    db.lotCosts = [created, ...list];
+    writeDemoDb(db);
+    return created;
+  }
+
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('lot_costs')
+    .upsert(
+      {
+        lot_id: input.lot_id,
+        cost_per_kg: input.cost_per_kg,
+        total_cost: input.total_cost,
+        notes: input.notes || null,
+        created_by: input.created_by,
+      },
+      { onConflict: 'lot_id' }
+    )
+    .select()
+    .single();
+  if (error) throw error;
+  return data as LotCost;
+}
+
+// ==========================================
+// CONSIGNMENTS (Concesiones, Pedidos & Abonos)
+// ==========================================
+export async function getConsignments(): Promise<Consignment[]> {
+  if (!isSupabaseConfigured()) {
+    const db = readDemoDb();
+    return (db.consignments ?? []).map((c) => ({
+      ...c,
+      strain: db.strains.find((s) => s.id === c.strain_id),
+    }));
+  }
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('consignments')
+    .select('*, strain:strains(*)')
+    .order('given_at', { ascending: false });
+  if (error) throw error;
+  return (data || []) as Consignment[];
+}
+
+export async function getConsignmentAdminCosts(): Promise<ConsignmentAdminCost[]> {
+  if (!isSupabaseConfigured()) {
+    return readDemoDb().consignmentAdminCosts ?? [];
+  }
+  const supabase = createClient();
+  const { data, error } = await supabase.from('consignment_admin_costs').select('*');
+  if (error) throw error;
+  return (data || []) as ConsignmentAdminCost[];
+}
+
+export async function createConsignment(input: {
+  consignee_id: string | null;
+  consignee_name: string;
+  lot_id?: string | null;
+  strain_id?: string | null;
+  item_label: string;
+  item_kind: ConsignmentItemKind;
+  quantity: number;
+  unit_label: string;
+  total_grams: number;
+  unit_sale_price: number;
+  agreed_total: number;
+  admin_cost_total?: number | null;
+  notes?: string;
+  given_by: string;
+  given_at?: string;
+}): Promise<Consignment> {
+  const givenAt = input.given_at || new Date().toISOString();
+
+  if (!isSupabaseConfigured()) {
+    const db = readDemoDb();
+    const item: Consignment = {
+      id: uuid(),
+      consignee_id: input.consignee_id,
+      consignee_name: input.consignee_name,
+      lot_id: input.lot_id || null,
+      strain_id: input.strain_id || null,
+      item_label: input.item_label,
+      item_kind: input.item_kind,
+      quantity: input.quantity,
+      unit_label: input.unit_label,
+      total_grams: input.total_grams,
+      unit_sale_price: input.unit_sale_price,
+      agreed_total: input.agreed_total,
+      paid_amount: 0,
+      status: 'pending',
+      notes: input.notes || null,
+      given_by: input.given_by,
+      given_at: givenAt,
+      created_at: new Date().toISOString(),
+    };
+    db.consignments = [item, ...(db.consignments ?? [])];
+    if (input.admin_cost_total && input.admin_cost_total > 0) {
+      db.consignmentAdminCosts = [
+        { consignment_id: item.id, admin_cost_total: input.admin_cost_total },
+        ...(db.consignmentAdminCosts ?? []),
+      ];
+    }
+    writeDemoDb(db);
+    return item;
+  }
+
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('consignments')
+    .insert({
+      consignee_id: input.consignee_id,
+      consignee_name: input.consignee_name,
+      lot_id: input.lot_id || null,
+      strain_id: input.strain_id || null,
+      item_label: input.item_label,
+      item_kind: input.item_kind,
+      quantity: input.quantity,
+      unit_label: input.unit_label,
+      total_grams: input.total_grams,
+      unit_sale_price: input.unit_sale_price,
+      agreed_total: input.agreed_total,
+      paid_amount: 0,
+      status: 'pending',
+      notes: input.notes || null,
+      given_by: input.given_by,
+      given_at: givenAt,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+
+  const created = data as Consignment;
+  if (input.admin_cost_total && input.admin_cost_total > 0) {
+    const { error: costErr } = await supabase.from('consignment_admin_costs').upsert(
+      { consignment_id: created.id, admin_cost_total: input.admin_cost_total },
+      { onConflict: 'consignment_id' }
+    );
+    if (costErr) throw costErr;
+  }
+
+  return created;
+}
+
+export async function requestConsignment(input: {
+  consignee_id: string;
+  consignee_name: string;
+  strain_id?: string | null;
+  item_label: string;
+  item_kind: ConsignmentItemKind;
+  quantity: number;
+  unit_label: string;
+  total_grams: number;
+  notes?: string;
+}): Promise<Consignment> {
+  if (!isSupabaseConfigured()) {
+    const db = readDemoDb();
+    const item: Consignment = {
+      id: uuid(),
+      consignee_id: input.consignee_id,
+      consignee_name: input.consignee_name,
+      lot_id: null,
+      strain_id: input.strain_id || null,
+      item_label: input.item_label,
+      item_kind: input.item_kind,
+      quantity: input.quantity,
+      unit_label: input.unit_label,
+      total_grams: input.total_grams,
+      unit_sale_price: 0,
+      agreed_total: 0,
+      paid_amount: 0,
+      status: 'requested',
+      notes: input.notes || null,
+      given_by: null,
+      given_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+    };
+    db.consignments = [item, ...(db.consignments ?? [])];
+    writeDemoDb(db);
+    return item;
+  }
+
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('consignments')
+    .insert({
+      consignee_id: input.consignee_id,
+      consignee_name: input.consignee_name,
+      strain_id: input.strain_id || null,
+      item_label: input.item_label,
+      item_kind: input.item_kind,
+      quantity: input.quantity,
+      unit_label: input.unit_label,
+      total_grams: input.total_grams,
+      unit_sale_price: 0,
+      agreed_total: 0,
+      paid_amount: 0,
+      status: 'requested',
+      notes: input.notes || null,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return data as Consignment;
+}
+
+export async function approveConsignmentRequest(input: {
+  id: string;
+  lot_id?: string | null;
+  unit_sale_price: number;
+  agreed_total: number;
+  admin_cost_total?: number | null;
+  given_by: string;
+}): Promise<void> {
+  const now = new Date().toISOString();
+  if (!isSupabaseConfigured()) {
+    const db = readDemoDb();
+    db.consignments = (db.consignments ?? []).map((c) =>
+      c.id === input.id
+        ? {
+            ...c,
+            lot_id: input.lot_id || c.lot_id,
+            unit_sale_price: input.unit_sale_price,
+            agreed_total: input.agreed_total,
+            status: 'pending',
+            given_by: input.given_by,
+            given_at: now,
+          }
+        : c
+    );
+    if (input.admin_cost_total && input.admin_cost_total > 0) {
+      db.consignmentAdminCosts = [
+        { consignment_id: input.id, admin_cost_total: input.admin_cost_total },
+        ...(db.consignmentAdminCosts ?? []).filter((x) => x.consignment_id !== input.id),
+      ];
+    }
+    writeDemoDb(db);
+    return;
+  }
+
+  const supabase = createClient();
+  const { error } = await supabase
+    .from('consignments')
+    .update({
+      lot_id: input.lot_id || null,
+      unit_sale_price: input.unit_sale_price,
+      agreed_total: input.agreed_total,
+      status: 'pending',
+      given_by: input.given_by,
+      given_at: now,
+    })
+    .eq('id', input.id);
+  if (error) throw error;
+
+  if (input.admin_cost_total && input.admin_cost_total > 0) {
+    const { error: costErr } = await supabase.from('consignment_admin_costs').upsert(
+      { consignment_id: input.id, admin_cost_total: input.admin_cost_total },
+      { onConflict: 'consignment_id' }
+    );
+    if (costErr) throw costErr;
+  }
+}
+
+export async function deleteConsignment(id: string): Promise<void> {
+  if (!isSupabaseConfigured()) {
+    const db = readDemoDb();
+    db.consignments = (db.consignments ?? []).filter((c) => c.id !== id);
+    db.consignmentPayments = (db.consignmentPayments ?? []).filter((p) => p.consignment_id !== id);
+    db.consignmentAdminCosts = (db.consignmentAdminCosts ?? []).filter(
+      (c) => c.consignment_id !== id
+    );
+    writeDemoDb(db);
+    return;
+  }
+  const supabase = createClient();
+  const { error } = await supabase.from('consignments').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function getConsignmentPayments(): Promise<ConsignmentPayment[]> {
+  if (!isSupabaseConfigured()) {
+    return readDemoDb().consignmentPayments ?? [];
+  }
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('consignment_payments')
+    .select('*')
+    .order('paid_at', { ascending: false });
+  if (error) throw error;
+  return (data || []) as ConsignmentPayment[];
+}
+
+export async function addConsignmentPayment(input: {
+  consignment_id: string;
+  amount: number;
+  note?: string;
+  recorded_by: string;
+}): Promise<ConsignmentPayment> {
+  if (!isSupabaseConfigured()) {
+    const db = readDemoDb();
+    const payment: ConsignmentPayment = {
+      id: uuid(),
+      consignment_id: input.consignment_id,
+      amount: input.amount,
+      note: input.note || null,
+      recorded_by: input.recorded_by,
+      paid_at: new Date().toISOString(),
+    };
+    const nextPayments = [payment, ...(db.consignmentPayments ?? [])];
+    db.consignmentPayments = nextPayments;
+    const totalPaid = nextPayments
+      .filter((p) => p.consignment_id === input.consignment_id)
+      .reduce((acc, p) => acc + Number(p.amount), 0);
+    db.consignments = (db.consignments ?? []).map((c) => {
+      if (c.id !== input.consignment_id) return c;
+      const status =
+        c.agreed_total > 0 && totalPaid >= c.agreed_total
+          ? 'paid'
+          : totalPaid > 0
+          ? 'partial'
+          : 'pending';
+      return { ...c, paid_amount: totalPaid, status };
+    });
+    writeDemoDb(db);
+    return payment;
+  }
+
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('consignment_payments')
+    .insert({
+      consignment_id: input.consignment_id,
+      amount: input.amount,
+      note: input.note || null,
+      recorded_by: input.recorded_by,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return data as ConsignmentPayment;
 }
 

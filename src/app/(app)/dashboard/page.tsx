@@ -12,6 +12,7 @@ import {
   Camera,
   AlertTriangle,
   ArrowUpRight,
+  HandCoins,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -23,9 +24,9 @@ import {
   CartesianGrid,
 } from 'recharts';
 import { useApp } from '@/components/providers/app-provider';
-import { getExpenses, getGradedBags, getLots, getSales } from '@/lib/data-service';
+import { getConsignments, getExpenses, getGradedBags, getLots, getSales } from '@/lib/data-service';
 import { formatWeight } from '@/lib/utils';
-import type { Expense, GradedBag, InventoryLot, Sale } from '@/types/database';
+import type { Consignment, Expense, GradedBag, InventoryLot, Sale } from '@/types/database';
 
 export default function DashboardPage() {
   const { profile, t, formatMoney } = useApp();
@@ -35,21 +36,24 @@ export default function DashboardPage() {
   const [bags, setBags] = useState<GradedBag[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [consignments, setConsignments] = useState<Consignment[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
       try {
-        const [l, b, s, e] = await Promise.all([
+        const [l, b, s, e, c] = await Promise.all([
           getLots(),
           getGradedBags(),
           getSales(),
           getExpenses(),
+          getConsignments(),
         ]);
         setLots(l);
         setBags(b);
         setSales(s);
         setExpenses(e);
+        setConsignments(c);
       } catch (err) {
         console.error(err);
       } finally {
@@ -77,6 +81,11 @@ export default function DashboardPage() {
       custom: availableBags.filter((b) => b.bag_type === 'custom').length,
     };
 
+    const consignmentOwed = consignments
+      .filter((c) => c.status !== 'requested')
+      .reduce((acc, c) => acc + Math.max(0, Number(c.agreed_total) - Number(c.paid_amount)), 0);
+    const pendingRequests = consignments.filter((c) => c.status === 'requested').length;
+
     return {
       todaySales,
       totalRevenue,
@@ -86,8 +95,10 @@ export default function DashboardPage() {
       totalShrinkageG,
       availableBagsCount: availableBags.length,
       bagCounts,
+      consignmentOwed,
+      pendingRequests,
     };
-  }, [lots, bags, sales, expenses]);
+  }, [lots, bags, sales, expenses, consignments]);
 
   const chartData = useMemo(() => {
     const days: Record<string, { day: string; sales: number; expenses: number }> = {};
@@ -175,8 +186,37 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Link
+          href="/consignments"
+          className="obsidian-card hover:border-emerald-400/40 rounded-2xl p-5 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 !border-emerald-500/25 bg-gradient-to-r from-emerald-500/[0.07] via-[#0d1410] to-[#0a0f0c]"
+        >
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-400/30 flex items-center justify-center shrink-0">
+              <HandCoins className="w-5 h-5 text-emerald-300" />
+            </div>
+            <div>
+              <p className="text-xs text-zinc-400">Mi Saldo a Concesión</p>
+              <p className="text-xl font-semibold tabular-nums text-white mt-0.5">
+                {formatMoney(stats.consignmentOwed)}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 text-xs font-medium text-emerald-300">
+            {stats.pendingRequests > 0 && (
+              <span className="px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-300">
+                {stats.pendingRequests} pedido(s) pendiente(s)
+              </span>
+            )}
+            <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500/15 border border-emerald-400/30">
+              Pedir 50tas / Ver mi cuenta
+              <ArrowUpRight className="w-3.5 h-3.5" />
+            </span>
+          </div>
+        </Link>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {[
+            { href: '/consignments', icon: HandCoins, label: t.nav.consignments, tone: 'text-emerald-300' },
             { href: '/inventory', icon: Package, label: t.nav.inventory, tone: 'text-emerald-400' },
             { href: '/grading', icon: Scale, label: t.nav.grading, tone: 'text-amber-400' },
             { href: '/sales', icon: ShoppingBag, label: t.sales.wholesale, tone: 'text-teal-400' },
@@ -292,6 +332,35 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Consignments Summary Link Card */}
+      <Link
+        href="/consignments"
+        className="obsidian-card hover:border-emerald-400/40 rounded-2xl p-5 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 !border-emerald-500/25 bg-gradient-to-r from-emerald-500/[0.07] via-[#0d1410] to-[#0a0f0c]"
+      >
+        <div className="flex items-center gap-3.5">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-400/30 flex items-center justify-center shrink-0">
+            <HandCoins className="w-5 h-5 text-emerald-300" />
+          </div>
+          <div>
+            <p className="text-xs text-zinc-400">Por Cobrar en Concesiones</p>
+            <p className="text-xl font-semibold tabular-nums text-white mt-0.5">
+              {formatMoney(stats.consignmentOwed)}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 text-xs font-medium text-emerald-300">
+          {stats.pendingRequests > 0 && (
+            <span className="px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-300">
+              {stats.pendingRequests} pedido(s) por aprobar
+            </span>
+          )}
+          <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500/15 border border-emerald-400/30">
+            Abrir Concesiones / Abonos
+            <ArrowUpRight className="w-3.5 h-3.5" />
+          </span>
+        </div>
+      </Link>
 
       {/* Chart + Bag Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -2,23 +2,33 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
-import { Plus, Camera, Package, Scale, Upload, X } from 'lucide-react';
+import { Plus, Camera, Package, Scale, Upload, X, Lock } from 'lucide-react';
 import { useApp } from '@/components/providers/app-provider';
 import {
   addLotPhoto,
   createLot,
+  getLotCosts,
   getLots,
   getStrains,
   updateLotStatus,
   uploadImageFile,
+  upsertLotCost,
 } from '@/lib/data-service';
 import { formatWeight } from '@/lib/utils';
-import { INVENTORY_UNITS, type InventoryLot, type LotStatus, type Strain } from '@/types/database';
+import {
+  INVENTORY_UNITS,
+  type InventoryLot,
+  type LotCost,
+  type LotStatus,
+  type Strain,
+} from '@/types/database';
 
 export default function InventoryPage() {
-  const { profile, t } = useApp();
+  const { profile, t, formatMoney } = useApp();
+  const isAdmin = profile?.role === 'admin';
   const [lots, setLots] = useState<InventoryLot[]>([]);
   const [strains, setStrains] = useState<Strain[]>([]);
+  const [lotCosts, setLotCosts] = useState<LotCost[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
 
@@ -27,6 +37,7 @@ export default function InventoryPage() {
   const [supplier, setSupplier] = useState('');
   const [declaredWeightG, setDeclaredWeightG] = useState('1000');
   const [actualWeightG, setActualWeightG] = useState('1000');
+  const [costPerKg, setCostPerKg] = useState('');
   const [notes, setNotes] = useState('');
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [saving, setSaving] = useState(false);
@@ -37,9 +48,14 @@ export default function InventoryPage() {
 
   const loadData = useCallback(async () => {
     try {
-      const [l, s] = await Promise.all([getLots(), getStrains()]);
+      const [l, s, c] = await Promise.all([
+        getLots(),
+        getStrains(),
+        isAdmin ? getLotCosts() : Promise.resolve([]),
+      ]);
       setLots(l);
       setStrains(s);
+      setLotCosts(c);
       if (s.length > 0 && !strainId) {
         setStrainId(s[0].id);
       }
@@ -48,15 +64,16 @@ export default function InventoryPage() {
     } finally {
       setLoading(false);
     }
-  }, [strainId]);
+  }, [strainId, isAdmin]);
 
   useEffect(() => {
     let active = true;
-    Promise.all([getLots(), getStrains()])
-      .then(([l, s]) => {
+    Promise.all([getLots(), getStrains(), isAdmin ? getLotCosts() : Promise.resolve([])])
+      .then(([l, s, c]) => {
         if (!active) return;
         setLots(l);
         setStrains(s);
+        setLotCosts(c);
         if (s.length > 0) {
           setStrainId((prev) => prev || s[0].id);
         }
@@ -68,7 +85,7 @@ export default function InventoryPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [isAdmin]);
 
   const addUnitShortcut = (grams: number) => {
     const current = parseFloat(declaredWeightG) || 0;
@@ -91,6 +108,17 @@ export default function InventoryPage() {
         notes: notes.trim() || undefined,
       });
 
+      const parsedCostKg = parseFloat(costPerKg);
+      if (isAdmin && Number.isFinite(parsedCostKg) && parsedCostKg > 0) {
+        const kilos = (parseFloat(actualWeightG) || parseFloat(declaredWeightG) || 0) / 1000;
+        await upsertLotCost({
+          lot_id: lot.id,
+          cost_per_kg: parsedCostKg,
+          total_cost: Number((kilos * parsedCostKg).toFixed(2)),
+          created_by: profile.id,
+        });
+      }
+
       // Upload attached scale photos
       for (let i = 0; i < photoFiles.length; i++) {
         const url = await uploadImageFile(photoFiles[i], 'greenscale/scales');
@@ -104,6 +132,7 @@ export default function InventoryPage() {
       setSupplier('');
       setDeclaredWeightG('1000');
       setActualWeightG('1000');
+      setCostPerKg('');
       setNotes('');
       setPhotoFiles([]);
       setShowForm(false);
@@ -250,6 +279,34 @@ export default function InventoryPage() {
             </div>
           </div>
 
+          {isAdmin && (
+            <div className="p-4 rounded-xl bg-emerald-500/[0.06] border border-emerald-500/20 space-y-2">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-300">
+                <Lock className="w-3.5 h-3.5" />
+                <span>Inversión / Costo por Kilo (Solo Admin — oculto para Almacén)</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={costPerKg}
+                  onChange={(e) => setCostPerKg(e.target.value)}
+                  placeholder="Ej: 850 por kilo"
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white font-mono"
+                />
+                <div className="text-xs text-zinc-400 tabular-nums">
+                  Inversión total estimada:{' '}
+                  <span className="text-emerald-300 font-semibold">
+                    {formatMoney(
+                      ((parseFloat(actualWeightG) || 0) / 1000) * (parseFloat(costPerKg) || 0)
+                    )}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div>
             <label className="block text-xs text-zinc-400 mb-1.5">{t.inventory.notes}</label>
             <input
@@ -307,6 +364,7 @@ export default function InventoryPage() {
         ) : (
           lots.map((lot) => {
             const intakeDiff = Number(lot.actual_weight_g) - Number(lot.declared_weight_g);
+            const lotCost = isAdmin ? lotCosts.find((c) => c.lot_id === lot.id) : undefined;
             return (
               <div
                 key={lot.id}
@@ -326,7 +384,14 @@ export default function InventoryPage() {
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {isAdmin && lotCost && (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/12 border border-emerald-500/25 text-[11px] font-medium text-emerald-300 tabular-nums">
+                        <Lock className="w-3 h-3" />
+                        Costo: {formatMoney(lotCost.cost_per_kg)}/kg · Total{' '}
+                        {formatMoney(lotCost.total_cost)}
+                      </span>
+                    )}
                     <select
                       value={lot.status}
                       onChange={async (e) => {

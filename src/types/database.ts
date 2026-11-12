@@ -123,6 +123,55 @@ export interface Invitation {
   created_at: string;
 }
 
+export interface LotCost {
+  id: string;
+  lot_id: string;
+  cost_per_kg: number;
+  total_cost: number;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export type ConsignmentItemKind = 'bulk' | 'bag_50' | 'bag_30' | 'bag_100' | 'bag_custom';
+export type ConsignmentStatus = 'requested' | 'pending' | 'partial' | 'paid';
+
+export interface Consignment {
+  id: string;
+  consignee_id: string | null;
+  consignee_name: string;
+  lot_id: string | null;
+  strain_id: string | null;
+  item_label: string;
+  item_kind: ConsignmentItemKind;
+  quantity: number;
+  unit_label: string;
+  total_grams: number;
+  unit_sale_price: number;
+  agreed_total: number;
+  paid_amount: number;
+  status: ConsignmentStatus;
+  notes: string | null;
+  given_by: string | null;
+  given_at: string;
+  created_at: string;
+  strain?: Strain;
+}
+
+export interface ConsignmentAdminCost {
+  consignment_id: string;
+  admin_cost_total: number;
+}
+
+export interface ConsignmentPayment {
+  id: string;
+  consignment_id: string;
+  amount: number;
+  note: string | null;
+  recorded_by: string | null;
+  paid_at: string;
+}
+
 export interface CurrencyConfig {
   code: string;
   symbol: string;

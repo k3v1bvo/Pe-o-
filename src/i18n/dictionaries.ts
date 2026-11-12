@@ -54,6 +54,7 @@ export interface Dictionary {
     inventory: string;
     grading: string;
     sales: string;
+    consignments: string;
     pricing: string;
     expenses: string;
     photos: string;
@@ -248,6 +249,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       inventory: 'Almacén / Entradas',
       grading: 'Grameo y Bolsas',
       sales: 'Ventas',
+      consignments: 'Concesiones / Fiado',
       pricing: 'Precios y Cepas',
       expenses: 'Gastos e Insumos',
       photos: 'Galería de Pesaje',
@@ -440,6 +442,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       inventory: 'Warehouse / Intake',
       grading: 'Grading & Bags',
       sales: 'Sales',
+      consignments: 'Consignments',
       pricing: 'Pricing & Strains',
       expenses: 'Expenses & Supplies',
       photos: 'Scale Photos',
@@ -632,6 +635,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       inventory: 'Estoque / Entradas',
       grading: 'Pesagem e Bolsas',
       sales: 'Vendas',
+      consignments: 'Consignações',
       pricing: 'Preços e Variedades',
       expenses: 'Despesas e Insumos',
       photos: 'Fotos da Balança',
@@ -824,6 +828,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       inventory: 'Entrepôt / Entrées',
       grading: 'Pesage & Sachets',
       sales: 'Ventes',
+      consignments: 'Consignations',
       pricing: 'Prix & Variétés',
       expenses: 'Dépenses',
       photos: 'Photos Balance',
