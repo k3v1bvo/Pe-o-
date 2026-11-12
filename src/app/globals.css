@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+:root {
+  --background: #090d0b;
+  --foreground: #f4f7f5;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+}
+
+@keyframes pulseGlow420 {
+  0%, 100% {
+    transform: scale(1);
+    text-shadow: 0 0 24px rgba(16, 185, 129, 0.7), 0 0 60px rgba(52, 211, 153, 0.45);
+  }
+  50% {
+    transform: scale(1.06);
+    text-shadow: 0 0 40px rgba(16, 185, 129, 1), 0 0 90px rgba(52, 211, 153, 0.8);
+  }
+}
+
+@keyframes smokeFloat {
+  0% {
+    transform: translateY(20px) scale(0.92);
+    opacity: 0;
+  }
+  40% {
+    opacity: 0.75;
+  }
+  100% {
+    transform: translateY(-45px) scale(1.18);
+    opacity: 0;
+  }
+}
+
+@keyframes progressFill {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+.animate-glow-420 {
+  animation: pulseGlow420 1.4s ease-in-out infinite;
+}
+
+.animate-smoke-1 {
+  animation: smokeFloat 2.4s ease-out infinite;
+}
+
+.animate-smoke-2 {
+  animation: smokeFloat 2.8s ease-out 0.6s infinite;
+}
+
+.animate-progress-420 {
+  animation: progressFill 2.1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
