@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '@/components/providers/app-provider';
 import { LOCALE_LABELS, type Locale } from '@/i18n/dictionaries';
+import { BrandLogo } from '@/components/ui/brand-logo';
 
 interface NavItem {
   href: string;
@@ -52,6 +53,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   ];
 
   const visibleNav = navItems.filter((item) => !item.adminOnly || isAdmin);
+  const currentTitle = visibleNav.find((item) => item.href === pathname)?.label || 'GreenScale';
 
   const handleLockToCalculator = async () => {
     await signOut();
@@ -59,31 +61,41 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   };
 
   const SidebarContent = (
-    <div className="flex flex-col h-full bg-zinc-950 border-r border-zinc-800/80 w-64 p-4">
-      <div className="flex items-center justify-between mb-6 px-2">
-        <div>
-          <span className="text-lg font-bold tracking-tight text-emerald-400">GreenScale</span>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            {isAdmin ? (
-              <Shield className="w-3 h-3 text-emerald-400" />
-            ) : (
-              <Warehouse className="w-3 h-3 text-amber-400" />
-            )}
-            <span className="text-[11px] text-zinc-400">
-              {isAdmin ? t.auth.roleAdmin : t.auth.roleWarehouse}
-            </span>
-          </div>
-        </div>
+    <div className="flex flex-col h-full bg-[#080c0a] border-r border-white/[0.07] w-[264px] p-4">
+      <div className="flex items-center justify-between mb-5 px-1.5 pt-1">
+        <BrandLogo size="md" />
         <button
           type="button"
           onClick={() => setMobileOpen(false)}
-          className="lg:hidden p-1.5 rounded-lg text-zinc-400 hover:text-white"
+          aria-label="Close navigation"
+          className="lg:hidden p-1.5 rounded-xl text-zinc-400 hover:text-white hover:bg-white/[0.06]"
         >
           <X className="w-5 h-5" />
         </button>
       </div>
 
-      <nav className="flex-1 space-y-1 overflow-y-auto">
+      {/* User Role Identity Pill */}
+      <div className="mb-5 px-3 py-2.5 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center gap-2.5">
+        <div
+          className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+            isAdmin
+              ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'
+              : 'bg-amber-500/15 text-amber-400 border border-amber-500/25'
+          }`}
+        >
+          {isAdmin ? <Shield className="w-4 h-4" /> : <Warehouse className="w-4 h-4" />}
+        </div>
+        <div className="min-w-0">
+          <div className="text-xs font-medium text-zinc-100 truncate">
+            {profile?.name || profile?.email || (isAdmin ? t.auth.roleAdmin : t.auth.roleWarehouse)}
+          </div>
+          <div className="text-[11px] text-zinc-400 truncate">
+            {isAdmin ? t.auth.roleAdmin : t.auth.roleWarehouse}
+          </div>
+        </div>
+      </div>
+
+      <nav className="flex-1 space-y-1 overflow-y-auto pr-0.5">
         {visibleNav.map((item) => {
           const Icon = item.icon;
           const active = pathname === item.href;
@@ -92,29 +104,36 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               key={item.href}
               href={item.href}
               onClick={() => setMobileOpen(false)}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+              className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all relative ${
                 active
-                  ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
-                  : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900'
+                  ? 'bg-emerald-500/12 text-emerald-300 border border-emerald-500/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]'
+                  : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.04] border border-transparent'
               }`}
             >
-              <Icon className="w-4 h-4 shrink-0" />
-              <span>{item.label}</span>
+              {active && (
+                <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-emerald-400" />
+              )}
+              <Icon
+                className={`w-4 h-4 shrink-0 ${
+                  active ? 'text-emerald-400' : 'text-zinc-500 group-hover:text-zinc-300'
+                }`}
+              />
+              <span className="truncate">{item.label}</span>
             </Link>
           );
         })}
       </nav>
 
-      <div className="pt-4 mt-4 border-t border-zinc-800/80 space-y-2">
+      <div className="pt-4 mt-4 border-t border-white/[0.07] space-y-2">
         {isDemo && (
           <div className="flex gap-1.5 pb-1">
             <button
               type="button"
               onClick={() => setDemoUser('admin')}
-              className={`flex-1 py-1 text-[11px] rounded-lg border cursor-pointer ${
+              className={`flex-1 py-1.5 text-[11px] font-medium rounded-xl border cursor-pointer transition-colors ${
                 isAdmin
                   ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
-                  : 'bg-zinc-900 border-zinc-800 text-zinc-400'
+                  : 'bg-white/[0.03] border-white/[0.07] text-zinc-400'
               }`}
             >
               Admin
@@ -122,10 +141,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <button
               type="button"
               onClick={() => setDemoUser('warehouse')}
-              className={`flex-1 py-1 text-[11px] rounded-lg border cursor-pointer ${
+              className={`flex-1 py-1.5 text-[11px] font-medium rounded-xl border cursor-pointer transition-colors ${
                 !isAdmin
                   ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
-                  : 'bg-zinc-900 border-zinc-800 text-zinc-400'
+                  : 'bg-white/[0.03] border-white/[0.07] text-zinc-400'
               }`}
             >
               Almacén
@@ -133,7 +152,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         )}
 
-        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800">
+        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.03] border border-white/[0.07]">
           <Globe className="w-4 h-4 text-zinc-400 shrink-0" />
           <select
             aria-label="Language"
@@ -152,7 +171,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <button
           type="button"
           onClick={handleLockToCalculator}
-          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-sm font-medium transition-colors cursor-pointer"
+          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-amber-500/12 hover:bg-amber-500/20 border border-amber-500/25 text-amber-300 text-sm font-medium transition-colors cursor-pointer"
         >
           <Calculator className="w-4 h-4" />
           <span>{t.nav.lockCalculator}</span>
@@ -161,7 +180,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <button
           type="button"
           onClick={handleLockToCalculator}
-          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-zinc-400 hover:text-red-300 hover:bg-zinc-900 text-xs transition-colors cursor-pointer"
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-zinc-400 hover:text-rose-300 hover:bg-white/[0.04] text-xs transition-colors cursor-pointer"
         >
           <LogOut className="w-4 h-4" />
           <span>{t.auth.signOut}</span>
@@ -171,15 +190,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <div className="min-h-screen flex bg-[#090d0b] text-zinc-100">
+    <div className="min-h-[100dvh] flex bg-[#060807] text-zinc-100 relative">
+      {/* Subtle Ambient Backdrop */}
+      <div className="vault-grid fixed inset-0 opacity-30 pointer-events-none" />
+
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:block shrink-0">{SidebarContent}</aside>
+      <aside className="hidden lg:block shrink-0 sticky top-0 h-screen z-20">{SidebarContent}</aside>
 
       {/* Mobile Drawer */}
       {mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden flex">
           <div
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm"
+            className="fixed inset-0 bg-black/75 backdrop-blur-sm"
             onClick={() => setMobileOpen(false)}
           />
           <div className="relative z-10 h-full">{SidebarContent}</div>
@@ -187,21 +209,39 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 relative z-10">
+        {/* Desktop Top Utility Bar */}
+        <header className="hidden lg:flex items-center justify-between px-8 h-16 border-b border-white/[0.06] bg-[#060807]/85 backdrop-blur-xl sticky top-0 z-20">
+          <div className="flex items-center gap-3">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+            <span className="text-sm font-medium text-zinc-200">{currentTitle}</span>
+          </div>
+          <button
+            type="button"
+            onClick={handleLockToCalculator}
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/12 hover:bg-amber-500/20 border border-amber-500/25 text-amber-300 text-xs font-medium transition-colors cursor-pointer"
+          >
+            <Calculator className="w-3.5 h-3.5" />
+            <span>{t.nav.lockCalculator}</span>
+          </button>
+        </header>
+
         {/* Mobile Header */}
-        <header className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-zinc-800/80 bg-zinc-950/90 sticky top-0 z-30">
+        <header className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-white/[0.07] bg-[#080c0a]/90 backdrop-blur-xl sticky top-0 z-30">
           <button
             type="button"
             onClick={() => setMobileOpen(true)}
-            className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-200"
+            aria-label="Open menu"
+            className="p-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-zinc-200"
           >
             <Menu className="w-5 h-5" />
           </button>
-          <span className="font-bold text-emerald-400 text-sm">GreenScale</span>
+          <BrandLogo size="sm" />
           <button
             type="button"
             onClick={handleLockToCalculator}
             title={t.nav.lockCalculator}
+            aria-label={t.nav.lockCalculator}
             className="p-2 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300"
           >
             <Calculator className="w-4 h-4" />
@@ -213,4 +253,3 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
-
