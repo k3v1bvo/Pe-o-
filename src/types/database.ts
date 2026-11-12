@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'warehouse' | 'consignee';
+export type UserRole = 'admin' | 'warehouse' | 'seller' | 'consignee';
 
 export interface Profile {
   id: string;
@@ -136,6 +136,7 @@ export interface LotCost {
 
 export type ConsignmentItemKind = 'bulk' | 'bag_50' | 'bag_30' | 'bag_100' | 'bag_custom';
 export type ConsignmentStatus = 'requested' | 'pending' | 'partial' | 'paid';
+export type ConsignmentDeliveryStatus = 'preparing' | 'dispatched' | 'delivered';
 
 export interface Consignment {
   id: string;
@@ -152,6 +153,7 @@ export interface Consignment {
   agreed_total: number;
   paid_amount: number;
   status: ConsignmentStatus;
+  delivery_status?: ConsignmentDeliveryStatus;
   notes: string | null;
   given_by: string | null;
   given_at: string;

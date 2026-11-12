@@ -55,16 +55,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const idMap: Record<UserRole, string> = {
       admin: 'demo-admin-id',
       warehouse: 'demo-warehouse-id',
+      seller: 'demo-seller-id',
       consignee: 'demo-consignee-id',
     };
     const emailMap: Record<UserRole, string> = {
       admin: 'admin@local.test',
       warehouse: 'almacen@local.test',
+      seller: 'ventas@local.test',
       consignee: 'socio@local.test',
     };
     const nameMap: Record<UserRole, string> = {
       admin: 'Admin (Demo)',
       warehouse: 'Almacenista (Demo)',
+      seller: 'Vendedor (Demo)',
       consignee: 'Concesionario (Demo)',
     };
     const demoProfile: Profile = {

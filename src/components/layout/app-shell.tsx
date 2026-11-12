@@ -32,10 +32,11 @@ interface NavItem {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   adminOnly?: boolean;
-  staffOnly?: boolean;
+  allowedRoles?: ('admin' | 'warehouse' | 'seller' | 'consignee')[];
 }
 
 const CONSIGNEE_ALLOWED_PATHS = ['/consignments', '/account'];
+const SELLER_ALLOWED_PATHS = ['/sales', '/account'];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -44,23 +45,61 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const isAdmin = profile?.role === 'admin';
+  const isSeller = profile?.role === 'seller';
   const isConsignee = profile?.role === 'consignee';
 
   useEffect(() => {
     if (isConsignee && !CONSIGNEE_ALLOWED_PATHS.some((p) => pathname.startsWith(p))) {
       router.replace('/consignments');
+    } else if (isSeller && !SELLER_ALLOWED_PATHS.some((p) => pathname.startsWith(p))) {
+      router.replace('/sales');
     }
-  }, [isConsignee, pathname, router]);
+  }, [isConsignee, isSeller, pathname, router]);
 
   const navItems: NavItem[] = [
-    { href: '/dashboard', label: t.nav.dashboard, icon: LayoutDashboard, staffOnly: true },
-    { href: '/inventory', label: t.nav.inventory, icon: Package, staffOnly: true },
-    { href: '/grading', label: t.nav.grading, icon: Scale, staffOnly: true },
-    { href: '/sales', label: t.nav.sales, icon: ShoppingBag, staffOnly: true },
-    { href: '/consignments', label: t.nav.consignments, icon: HandCoins },
+    {
+      href: '/dashboard',
+      label: t.nav.dashboard,
+      icon: LayoutDashboard,
+      allowedRoles: ['admin', 'warehouse'],
+    },
+    {
+      href: '/inventory',
+      label: t.nav.inventory,
+      icon: Package,
+      allowedRoles: ['admin', 'warehouse'],
+    },
+    {
+      href: '/grading',
+      label: t.nav.grading,
+      icon: Scale,
+      allowedRoles: ['admin', 'warehouse'],
+    },
+    {
+      href: '/sales',
+      label: t.nav.sales,
+      icon: ShoppingBag,
+      allowedRoles: ['admin', 'warehouse', 'seller'],
+    },
+    {
+      href: '/consignments',
+      label: t.nav.consignments,
+      icon: HandCoins,
+      allowedRoles: ['admin', 'warehouse', 'consignee'],
+    },
     { href: '/pricing', label: t.nav.pricing, icon: Tags, adminOnly: true },
-    { href: '/expenses', label: t.nav.expenses, icon: Receipt, staffOnly: true },
-    { href: '/photos', label: t.nav.photos, icon: Camera, staffOnly: true },
+    {
+      href: '/expenses',
+      label: t.nav.expenses,
+      icon: Receipt,
+      allowedRoles: ['admin', 'warehouse'],
+    },
+    {
+      href: '/photos',
+      label: t.nav.photos,
+      icon: Camera,
+      allowedRoles: ['admin', 'warehouse'],
+    },
     { href: '/users', label: t.nav.users, icon: Users, adminOnly: true },
     { href: '/settings', label: t.nav.settings, icon: Settings, adminOnly: true },
     { href: '/account', label: t.nav.account, icon: KeyRound },
@@ -68,12 +107,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const visibleNav = navItems.filter((item) => {
     if (item.adminOnly && !isAdmin) return false;
-    if (item.staffOnly && isConsignee) return false;
+    if (item.allowedRoles && profile?.role && !item.allowedRoles.includes(profile.role)) {
+      return false;
+    }
     return true;
   });
   const currentTitle = visibleNav.find((item) => item.href === pathname)?.label || 'GreenScale';
   const roleLabel = isAdmin
     ? t.auth.roleAdmin
+    : isSeller
+    ? t.auth.roleSeller
     : isConsignee
     ? t.auth.roleConsignee
     : t.auth.roleWarehouse;
@@ -103,6 +146,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
             isAdmin
               ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'
+              : isSeller
+              ? 'bg-teal-500/15 text-teal-400 border border-teal-500/25'
               : isConsignee
               ? 'bg-sky-500/15 text-sky-400 border border-sky-500/25'
               : 'bg-amber-500/15 text-amber-400 border border-amber-500/25'
@@ -110,6 +155,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         >
           {isAdmin ? (
             <Shield className="w-4 h-4" />
+          ) : isSeller ? (
+            <ShoppingBag className="w-4 h-4" />
           ) : isConsignee ? (
             <HandCoins className="w-4 h-4" />
           ) : (

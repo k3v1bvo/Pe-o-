@@ -46,6 +46,7 @@ export interface Dictionary {
     invalidCredentials: string;
     roleAdmin: string;
     roleWarehouse: string;
+    roleSeller: string;
     roleConsignee: string;
     demoAdminBtn: string;
     demoWarehouseBtn: string;
@@ -243,6 +244,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       invalidCredentials: 'Credenciales inválidas',
       roleAdmin: 'Administrador',
       roleWarehouse: 'Almacenista',
+      roleSeller: 'Vendedor / Ventas',
       roleConsignee: 'Concesionario',
       demoAdminBtn: 'Probar como Admin (Demo)',
       demoWarehouseBtn: 'Probar como Almacenista (Demo)',
@@ -438,6 +440,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       invalidCredentials: 'Invalid credentials',
       roleAdmin: 'Administrator',
       roleWarehouse: 'Warehouse Staff',
+      roleSeller: 'Sales Rep',
       roleConsignee: 'Consignee',
       demoAdminBtn: 'Try as Admin (Demo)',
       demoWarehouseBtn: 'Try as Warehouse (Demo)',
@@ -633,6 +636,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       invalidCredentials: 'Credenciais inválidas',
       roleAdmin: 'Administrador',
       roleWarehouse: 'Estoque',
+      roleSeller: 'Vendedor',
       roleConsignee: 'Consignatário',
       demoAdminBtn: 'Testar como Admin (Demo)',
       demoWarehouseBtn: 'Testar como Estoque (Demo)',
@@ -828,6 +832,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       invalidCredentials: 'Identifiants invalides',
       roleAdmin: 'Administrateur',
       roleWarehouse: 'Magasinier',
+      roleSeller: 'Vendeur',
       roleConsignee: 'Consignataire',
       demoAdminBtn: 'Tester Admin (Démo)',
       demoWarehouseBtn: 'Tester Magasinier (Démo)',

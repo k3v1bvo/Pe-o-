@@ -107,6 +107,42 @@ export default function UsersPage() {
         <p className="text-sm text-zinc-400 mt-1">{t.users.subtitle}</p>
       </div>
 
+      {/* Role Guide */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {[
+          {
+            title: t.auth.roleConsignee,
+            tag: 'Entregas a Concesión',
+            desc: 'Solo ve lo que llevó, fecha, precio que le diste, sus abonos, saldo y puede pedir 50tas.',
+            tone: 'border-sky-500/25 bg-sky-500/[0.05] text-sky-300',
+          },
+          {
+            title: t.auth.roleSeller,
+            tag: 'Ventas Directas',
+            desc: 'Registra ventas en mostrador/mayoreo con tus precios sin ver proveedores, gastos ni costos.',
+            tone: 'border-teal-500/25 bg-teal-500/[0.05] text-teal-300',
+          },
+          {
+            title: t.auth.roleWarehouse,
+            tag: 'Bodega y Pesaje',
+            desc: 'Pesa lotes, sube fotos, arma bolsas (50/30/100) y registra gastos sin ver tu costo ni ganancia.',
+            tone: 'border-amber-500/25 bg-amber-500/[0.05] text-amber-300',
+          },
+          {
+            title: t.auth.roleAdmin,
+            tag: 'Dueño / Total',
+            desc: 'Acceso completo a costos reales (ej. 850/kg), margen neto, caja, usuarios y ajustes.',
+            tone: 'border-emerald-500/25 bg-emerald-500/[0.05] text-emerald-300',
+          },
+        ].map((card) => (
+          <div key={card.title} className={`rounded-2xl border p-4 space-y-1.5 ${card.tone}`}>
+            <div className="text-xs font-semibold uppercase tracking-wider opacity-80">{card.tag}</div>
+            <div className="text-sm font-semibold text-white">{card.title}</div>
+            <p className="text-xs text-zinc-400 leading-relaxed">{card.desc}</p>
+          </div>
+        ))}
+      </div>
+
       {/* Invite-Only Generator */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 space-y-4">
         <div className="flex items-center gap-2 text-sm font-semibold text-white">
@@ -115,10 +151,10 @@ export default function UsersPage() {
         </div>
 
         <p className="text-xs text-zinc-400 leading-relaxed">
-          Tú generas un link único de un solo uso (expira en 7 días) y eliges el rol. El usuario
-          abre el enlace, define su <strong className="text-zinc-200">propia contraseña</strong>{' '}
-          (tú nunca la ves) y luego puede cambiarla cuando quiera desde{' '}
-          <strong className="text-zinc-200">Mi Cuenta / Clave</strong>.
+          <strong className="text-zinc-200">Cómo invitar:</strong> 1) Elige el perfil (y opcional el
+          correo) · 2) Dale a <strong className="text-zinc-200">Generar Link</strong> y copia el
+          enlace · 3) Pásaselo por WhatsApp; al abrirlo él mismo pone su nombre y{' '}
+          <strong className="text-zinc-200">crea su propia contraseña</strong> (tú nunca la ves).
         </p>
 
         {actionError && (
@@ -141,7 +177,8 @@ export default function UsersPage() {
             onChange={(e) => setInviteRole(e.target.value as UserRole)}
             className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-white"
           >
-            <option value="consignee">{t.auth.roleConsignee} (Solo sus concesiones y pedidos)</option>
+            <option value="consignee">{t.auth.roleConsignee} (Concesiones y pedir 50tas)</option>
+            <option value="seller">{t.auth.roleSeller} (Solo ventas directas)</option>
             <option value="warehouse">{t.auth.roleWarehouse} (Bodega y pesaje sin costos)</option>
             <option value="admin">{t.auth.roleAdmin} (Control total y costos)</option>
           </select>
@@ -172,6 +209,8 @@ export default function UsersPage() {
                       <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-300">
                         {inv.role === 'admin'
                           ? t.auth.roleAdmin
+                          : inv.role === 'seller'
+                          ? t.auth.roleSeller
                           : inv.role === 'consignee'
                           ? t.auth.roleConsignee
                           : t.auth.roleWarehouse}
@@ -269,6 +308,7 @@ export default function UsersPage() {
                       className="bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1 text-xs text-zinc-200"
                     >
                       <option value="consignee">{t.auth.roleConsignee}</option>
+                      <option value="seller">{t.auth.roleSeller}</option>
                       <option value="warehouse">{t.auth.roleWarehouse}</option>
                       <option value="admin">{t.auth.roleAdmin}</option>
                     </select>

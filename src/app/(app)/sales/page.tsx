@@ -24,6 +24,7 @@ import type {
 export default function SalesPage() {
   const { profile, t, formatMoney } = useApp();
   const isAdmin = profile?.role === 'admin';
+  const canRetail = isAdmin || profile?.role === 'seller';
 
   const [bags, setBags] = useState<GradedBag[]>([]);
   const [lots, setLots] = useState<InventoryLot[]>([]);
@@ -32,8 +33,8 @@ export default function SalesPage() {
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [mode, setMode] = useState<'bag' | 'bulk'>(isAdmin ? 'bag' : 'bulk');
-  const [saleType, setSaleType] = useState<SaleType>(isAdmin ? 'retail' : 'wholesale');
+  const [mode, setMode] = useState<'bag' | 'bulk'>(canRetail ? 'bag' : 'bulk');
+  const [saleType, setSaleType] = useState<SaleType>(canRetail ? 'retail' : 'wholesale');
   const [selectedBagId, setSelectedBagId] = useState('');
   const [selectedLotId, setSelectedLotId] = useState('');
   const [quantityG, setQuantityG] = useState('250');
@@ -90,7 +91,7 @@ export default function SalesPage() {
       const avail = b.filter((item) => item.status === 'available');
       if (avail.length > 0 && !selectedBagId) {
         setSelectedBagId(avail[0].id);
-        if (isAdmin) {
+        if (canRetail) {
           setUnitPrice(String(avail[0].price));
           setTotalPrice(String(avail[0].price));
         }
@@ -103,7 +104,7 @@ export default function SalesPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedBagId, selectedLotId, isAdmin]);
+  }, [selectedBagId, selectedLotId, canRetail]);
 
   useEffect(() => {
     let active = true;
@@ -124,14 +125,14 @@ export default function SalesPage() {
         const avail = b.filter((item) => item.status === 'available');
         if (avail.length > 0) {
           setSelectedBagId(avail[0].id);
-          if (isAdmin) {
+          if (canRetail) {
             setUnitPrice(String(avail[0].price));
             setTotalPrice(String(avail[0].price));
           }
         }
         if (l.length > 0) {
           setSelectedLotId(l[0].id);
-          if (!isAdmin) {
+          if (!canRetail) {
             applyBulkPrice(l[0].id, '250', r, l, st);
           }
         }
@@ -177,7 +178,7 @@ export default function SalesPage() {
     if (!profile) return;
     setSaving(true);
     try {
-      const effectiveSaleType: SaleType = isAdmin ? saleType : 'wholesale';
+      const effectiveSaleType: SaleType = canRetail ? saleType : 'wholesale';
 
       if (mode === 'bag' && selectedBag) {
         const lot = lots.find((l) => l.id === selectedBag.lot_id);
@@ -218,7 +219,7 @@ export default function SalesPage() {
 
   if (loading) return <div className="text-zinc-400 text-sm">{t.app.loading}</div>;
 
-  const specialRules = rules.filter((r) => r.active && (isAdmin || r.rule_type === 'wholesale'));
+  const specialRules = rules.filter((r) => r.active && (canRetail || r.rule_type === 'wholesale'));
 
   return (
     <div className="space-y-6">
@@ -227,7 +228,7 @@ export default function SalesPage() {
         <p className="text-sm text-zinc-400 mt-1">{t.sales.subtitle}</p>
       </div>
 
-      {!isAdmin && (
+      {!canRetail && (
         <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-sm flex items-center gap-2">
           <Lock className="w-4 h-4 shrink-0" />
           <span>{t.sales.warehouseWholesaleOnly}</span>
@@ -347,12 +348,12 @@ export default function SalesPage() {
           <div>
             <label className="block text-xs text-zinc-400 mb-1.5">{t.sales.saleType}</label>
             <select
-              value={isAdmin ? saleType : 'wholesale'}
-              disabled={!isAdmin}
+              value={canRetail ? saleType : 'wholesale'}
+              disabled={!canRetail}
               onChange={(e) => setSaleType(e.target.value as SaleType)}
               className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-white disabled:opacity-60"
             >
-              {isAdmin && <option value="retail">{t.sales.retail}</option>}
+              {canRetail && <option value="retail">{t.sales.retail}</option>}
               <option value="wholesale">{t.sales.wholesale}</option>
             </select>
           </div>

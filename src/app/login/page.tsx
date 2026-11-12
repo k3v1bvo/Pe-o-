@@ -105,7 +105,13 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (profile) {
-      router.replace(profile.role === 'consignee' ? '/consignments' : '/dashboard');
+      const target =
+        profile.role === 'consignee'
+          ? '/consignments'
+          : profile.role === 'seller'
+          ? '/sales'
+          : '/dashboard';
+      router.replace(target);
     }
   }, [profile, router]);
 
@@ -133,7 +139,6 @@ export default function LoginPage() {
       }
 
       await refreshProfile();
-      router.push('/dashboard');
     } catch (err) {
       console.error(err);
       setError(t.auth.invalidCredentials);

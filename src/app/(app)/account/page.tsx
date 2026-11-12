@@ -23,6 +23,8 @@ export default function AccountPage() {
   const roleLabel =
     profile?.role === 'admin'
       ? t.auth.roleAdmin
+      : profile?.role === 'seller'
+      ? t.auth.roleSeller
       : profile?.role === 'consignee'
       ? t.auth.roleConsignee
       : t.auth.roleWarehouse;

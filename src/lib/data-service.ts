@@ -176,6 +176,14 @@ function getInitialDemoDb(): DemoDb {
         created_at: now,
       },
       {
+        id: 'demo-seller-id',
+        email: 'ventas@local.test',
+        name: 'Vendedor (Demo)',
+        role: 'seller',
+        active: true,
+        created_at: now,
+      },
+      {
         id: 'demo-consignee-id',
         email: 'socio@local.test',
         name: 'Concesionario (Demo)',
@@ -1258,6 +1266,27 @@ export async function deleteConsignmentPayment(
 
   const supabase = createClient();
   const { error } = await supabase.from('consignment_payments').delete().eq('id', paymentId);
+  if (error) throw error;
+}
+
+export async function updateConsignmentDeliveryStatus(
+  id: string,
+  deliveryStatus: 'preparing' | 'dispatched' | 'delivered'
+): Promise<void> {
+  if (!isSupabaseConfigured()) {
+    const db = readDemoDb();
+    db.consignments = (db.consignments ?? []).map((c) =>
+      c.id === id ? { ...c, delivery_status: deliveryStatus } : c
+    );
+    writeDemoDb(db);
+    return;
+  }
+
+  const supabase = createClient();
+  const { error } = await supabase
+    .from('consignments')
+    .update({ delivery_status: deliveryStatus })
+    .eq('id', id);
   if (error) throw error;
 }
 

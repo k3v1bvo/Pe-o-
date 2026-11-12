@@ -98,7 +98,13 @@ function InviteFormInner() {
 
       if (data.session) {
         await refreshProfile();
-        router.push(inviteInfo?.role === 'consignee' ? '/consignments' : '/dashboard');
+        const target =
+          inviteInfo?.role === 'consignee'
+            ? '/consignments'
+            : inviteInfo?.role === 'seller'
+            ? '/sales'
+            : '/dashboard';
+        router.push(target);
       } else {
         setSuccessMsg(
           'Cuenta creada. Revisa tu correo para confirmar o inicia sesión en /login.'
@@ -154,6 +160,8 @@ function InviteFormInner() {
           <span>
             {inviteInfo.role === 'admin'
               ? t.auth.roleAdmin
+              : inviteInfo.role === 'seller'
+              ? t.auth.roleSeller
               : inviteInfo.role === 'consignee'
               ? t.auth.roleConsignee
               : t.auth.roleWarehouse}

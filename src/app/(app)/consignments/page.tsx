@@ -13,6 +13,7 @@ import {
   Trash2,
   Wallet,
   PackageCheck,
+  Truck,
 } from 'lucide-react';
 import { useApp } from '@/components/providers/app-provider';
 import {
@@ -29,10 +30,12 @@ import {
   getProfiles,
   getStrains,
   requestConsignment,
+  updateConsignmentDeliveryStatus,
 } from '@/lib/data-service';
 import type {
   Consignment,
   ConsignmentAdminCost,
+  ConsignmentDeliveryStatus,
   ConsignmentItemKind,
   ConsignmentPayment,
   ConsignmentStatus,
@@ -962,6 +965,44 @@ export default function ConsignmentsPage() {
                       <span className={`text-xs px-2.5 py-0.5 rounded-full border ${meta.badge}`}>
                         {meta.label}
                       </span>
+                      {item.status !== 'requested' && (
+                        isAdmin ? (
+                          <select
+                            aria-label="Estado de entrega"
+                            value={item.delivery_status || 'preparing'}
+                            onChange={async (e) => {
+                              try {
+                                await updateConsignmentDeliveryStatus(
+                                  item.id,
+                                  e.target.value as ConsignmentDeliveryStatus
+                                );
+                                await loadData();
+                              } catch (err) {
+                                console.error(err);
+                                setErrorMsg(
+                                  'Falta aplicar la migración SQL para estado de entrega.'
+                                );
+                              }
+                            }}
+                            className="text-[11px] px-2.5 py-0.5 rounded-full bg-zinc-950 border border-white/15 text-zinc-200 cursor-pointer"
+                          >
+                            <option value="preparing">Por preparar</option>
+                            <option value="dispatched">En camino</option>
+                            <option value="delivered">Entregado</option>
+                          </select>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-full bg-white/[0.04] border border-white/10 text-zinc-300">
+                            <Truck className="w-3 h-3 text-emerald-400" />
+                            <span>
+                              {item.delivery_status === 'delivered'
+                                ? 'Entregado'
+                                : item.delivery_status === 'dispatched'
+                                ? 'En camino'
+                                : 'Por preparar'}
+                            </span>
+                          </span>
+                        )
+                      )}
                     </div>
                     <p className="text-xs text-zinc-400 mt-1">
                       Lleva: <span className="text-zinc-200 font-medium">{item.consignee_name}</span>{' '}
