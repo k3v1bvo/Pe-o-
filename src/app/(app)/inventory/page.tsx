@@ -412,29 +412,46 @@ export default function InventoryPage() {
           })()}
 
           {isAdmin && (
-            <div className="p-4 rounded-xl bg-emerald-500/[0.06] border border-emerald-500/20 space-y-2">
-              <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-300">
-                <Lock className="w-3.5 h-3.5" />
-                <span>Inversión / Costo por Kilo (Solo Admin — oculto para Almacén y Ventas)</span>
+            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-emerald-500/[0.08] to-emerald-500/[0.02] border border-emerald-500/25 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-semibold text-emerald-300">
+                  <Lock className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Inversión / Costo (Solo visible para Admin)</span>
+                </div>
+                <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-semibold">
+                  Privado
+                </span>
               </div>
-              <p className="text-[11px] text-zinc-400">
-                Cuánto te costó cada kilo (1,000g) de este lote. Almacén y Ventas nunca verán este dato.
+              <p className="text-xs text-zinc-400">
+                Anota el costo acordado por kilo (1,000g). Almacén y Ventas nunca verán este valor.
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={costPerKg}
-                  onChange={(e) => setCostPerKg(e.target.value)}
-                  placeholder="Ej: 850 (costo por 1 kg)"
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white font-mono"
-                />
-                <div className="text-xs text-zinc-400 tabular-nums">
-                  Inversión total estimada:{' '}
-                  <span className="text-emerald-300 font-semibold">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+                <div>
+                  <label className="block text-[11px] font-medium text-zinc-300 mb-1">
+                    Costo por Kilo (Bs./kg)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-mono text-zinc-500">
+                      Bs.
+                    </span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={costPerKg}
+                      onChange={(e) => setCostPerKg(e.target.value)}
+                      placeholder="Ej: 850"
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-9 pr-3.5 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/15 transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-zinc-950/80 border border-white/[0.08] flex items-center justify-between">
+                  <span className="text-xs text-zinc-400">Inversión calculada:</span>
+                  <span className="text-base font-bold font-mono text-emerald-400">
                     {formatMoney(
-                      ((parseFloat(actualWeightG) || 0) / 1000) * (parseFloat(costPerKg) || 0)
+                      ((parseFloat(actualWeightG) || parseFloat(declaredWeightG) || 0) / 1000) *
+                        (parseFloat(costPerKg) || 0)
                     )}
                   </span>
                 </div>
@@ -442,34 +459,39 @@ export default function InventoryPage() {
             </div>
           )}
 
-          <div>
-            <label className="block text-xs font-medium text-zinc-300 mb-1.5">{t.inventory.notes}</label>
-            <input
-              type="text"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Ej: Llegaron 4 kilos sellados, humedad normal..."
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-zinc-600"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs text-zinc-400 mb-1.5">{t.inventory.photos}</label>
-            <label className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-sm text-zinc-200 cursor-pointer">
-              <Camera className="w-4 h-4 text-emerald-400" />
-              <span>
-                {photoFiles.length > 0
-                  ? `${photoFiles.length} foto(s) seleccionada(s)`
-                  : t.inventory.addPhoto}
-              </span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-zinc-300 mb-1.5">{t.inventory.notes}</label>
               <input
-                type="file"
-                accept="image/*"
-                multiple
-                className="hidden"
-                onChange={(e) => setPhotoFiles(Array.from(e.target.files || []))}
+                type="text"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Ej: Llegaron sellados, buena calidad..."
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/15 transition-all"
               />
-            </label>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-zinc-300 mb-1.5">{t.inventory.photos}</label>
+              <label className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-zinc-950 border border-dashed border-zinc-700 hover:border-emerald-500/60 hover:bg-zinc-900/60 transition-all cursor-pointer">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Camera className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span className="text-xs text-zinc-300 truncate">
+                    {photoFiles.length > 0
+                      ? `${photoFiles.length} foto(s) de pesaje listas`
+                      : 'Subir fotos de báscula (opcional)'}
+                  </span>
+                </div>
+                <span className="text-[11px] font-medium text-emerald-400 shrink-0 ml-2">Examinar</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => setPhotoFiles(Array.from(e.target.files || []))}
+                />
+              </label>
+            </div>
           </div>
 
           <div className="flex items-center gap-3 pt-2">
