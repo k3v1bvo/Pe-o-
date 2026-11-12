@@ -9,6 +9,7 @@ import type {
   ExpenseCategory,
   GradedBag,
   InventoryLot,
+  Invitation,
   LotPhoto,
   LotStatus,
   PricingBagType,
@@ -692,6 +693,54 @@ export async function updateProfileRole(id: string, role: UserRole): Promise<voi
   }
   const supabase = createClient();
   const { error } = await supabase.from('profiles').update({ role }).eq('id', id);
+  if (error) throw error;
+}
+
+// ==========================================
+// INVITATIONS (Invite-only user creation)
+// ==========================================
+export async function getInvitations(): Promise<Invitation[]> {
+  if (!isSupabaseConfigured()) {
+    return [];
+  }
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('invitations')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data || []) as Invitation[];
+}
+
+export async function createInvitation(input: {
+  role: UserRole;
+  email?: string;
+  created_by: string;
+}): Promise<Invitation> {
+  const token =
+    typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID().replace(/-/g, '').slice(0, 16).toUpperCase()
+      : Math.random().toString(36).slice(2, 14).toUpperCase();
+
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('invitations')
+    .insert({
+      token,
+      email: input.email?.trim() || null,
+      role: input.role,
+      created_by: input.created_by,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return data as Invitation;
+}
+
+export async function deleteInvitation(id: string): Promise<void> {
+  if (!isSupabaseConfigured()) return;
+  const supabase = createClient();
+  const { error } = await supabase.from('invitations').delete().eq('id', id);
   if (error) throw error;
 }
 

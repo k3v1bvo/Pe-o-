@@ -14,20 +14,76 @@ CREATE TABLE public.profiles (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Crear perfil automáticamente al registrar usuario
+-- Invitaciones (solo Admin crea invitaciones para nuevos usuarios)
+CREATE TABLE public.invitations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  token TEXT NOT NULL UNIQUE,
+  email TEXT,
+  role TEXT NOT NULL DEFAULT 'warehouse' CHECK (role IN ('admin', 'warehouse')),
+  created_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  used_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  used_at TIMESTAMPTZ,
+  expires_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '7 days'),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_invitations_token ON public.invitations(token);
+
+-- Crear perfil automáticamente al registrar usuario (solo por invitación o admin_created)
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
+DECLARE
+  inv RECORD;
+  req_token TEXT;
+  assigned_role TEXT;
 BEGIN
+  IF COALESCE(NEW.raw_app_meta_data->>'admin_created', 'false') = 'true' THEN
+    assigned_role := COALESCE(NEW.raw_app_meta_data->>'role', NEW.raw_user_meta_data->>'role', 'admin');
+    INSERT INTO public.profiles (id, email, name, role)
+    VALUES (
+      NEW.id,
+      NEW.email,
+      COALESCE(NEW.raw_user_meta_data->>'name', 'Usuario'),
+      assigned_role
+    );
+    RETURN NEW;
+  END IF;
+
+  req_token := NEW.raw_user_meta_data->>'invite_token';
+  IF req_token IS NULL OR req_token = '' THEN
+    RAISE EXCEPTION 'Registro bloqueado: solo se permiten cuentas por invitación del administrador.';
+  END IF;
+
+  SELECT * INTO inv
+  FROM public.invitations
+  WHERE token = req_token
+    AND used_at IS NULL
+    AND expires_at > NOW()
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Invitación inválida, expirada o ya utilizada.';
+  END IF;
+
+  IF inv.email IS NOT NULL AND lower(inv.email) <> lower(NEW.email) THEN
+    RAISE EXCEPTION 'Esta invitación pertenece a otro correo electrónico.';
+  END IF;
+
   INSERT INTO public.profiles (id, email, name, role)
   VALUES (
     NEW.id,
     NEW.email,
     COALESCE(NEW.raw_user_meta_data->>'name', 'Usuario'),
-    COALESCE(NEW.raw_user_meta_data->>'role', 'warehouse')
+    inv.role
   );
+
+  UPDATE public.invitations
+  SET used_by = NEW.id, used_at = NOW()
+  WHERE id = inv.id;
+
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
@@ -169,7 +225,7 @@ BEGIN
   WHERE id = target_lot_id;
   RETURN COALESCE(NEW, OLD);
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 CREATE TRIGGER on_graded_bag_change
   AFTER INSERT OR UPDATE OR DELETE ON public.graded_bags
@@ -183,7 +239,7 @@ BEGIN
   END IF;
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 CREATE TRIGGER on_sale_created
   AFTER INSERT ON public.sales
@@ -205,7 +261,7 @@ ALTER TABLE public.app_settings ENABLE ROW LEVEL SECURITY;
 CREATE OR REPLACE FUNCTION public.get_user_role()
 RETURNS TEXT AS $$
   SELECT role FROM public.profiles WHERE id = auth.uid();
-$$ LANGUAGE sql SECURITY DEFINER STABLE;
+$$ LANGUAGE sql SECURITY DEFINER STABLE SET search_path = public;
 
 -- PROFILES
 CREATE POLICY "Users can view own profile" ON public.profiles

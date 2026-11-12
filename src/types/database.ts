@@ -111,6 +111,18 @@ export interface AppSetting {
   updated_at: string;
 }
 
+export interface Invitation {
+  id: string;
+  token: string;
+  email: string | null;
+  role: UserRole;
+  created_by: string | null;
+  used_by: string | null;
+  used_at: string | null;
+  expires_at: string;
+  created_at: string;
+}
+
 export interface CurrencyConfig {
   code: string;
   symbol: string;
