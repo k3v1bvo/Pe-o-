@@ -586,7 +586,7 @@ export function CalculatorView() {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => setSciOverride((v) => (isScientific ? 'off' : 'on'))}
+            onClick={() => setSciOverride(() => (isScientific ? 'off' : 'on'))}
             className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border text-xs font-medium transition-colors cursor-pointer ${
               isScientific
                 ? 'bg-[#ff9f0a]/15 border-[#ff9f0a]/40 text-[#ffb340]'
@@ -666,7 +666,7 @@ export function CalculatorView() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setSciOverride((v) => (isScientific ? 'off' : 'on'))}
+                  onClick={() => setSciOverride(() => (isScientific ? 'off' : 'on'))}
                   aria-label="Scientific mode"
                   title={isScientific ? 'Estándar' : 'Científica'}
                   className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors cursor-pointer ${
