@@ -407,33 +407,51 @@ export default function SalesPage() {
             </div>
           )}
 
-          <div>
-            <label className="block text-xs font-medium text-zinc-300 mb-1">{t.sales.unitPrice}</label>
-            <p className="text-[11px] text-zinc-500 mb-1.5">Precio por gramo o por bolsa armada.</p>
-            <input
-              type="number"
-              step="0.01"
-              required
-              value={unitPrice}
-              onChange={(e) => setUnitPrice(e.target.value)}
-              placeholder="Ej: 50"
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-white font-mono"
-            />
-          </div>
+              <div>
+                <label className="block text-xs font-medium text-zinc-300 mb-1">{t.sales.unitPrice}</label>
+                <p className="text-[11px] text-zinc-500 mb-1.5">Precio unitario / gramo (editable).</p>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  required
+                  value={unitPrice}
+                  onChange={(e) => {
+                    const u = e.target.value;
+                    setUnitPrice(u);
+                    const uNum = parseFloat(u) || 0;
+                    if (mode === 'bulk') {
+                      const qNum = parseFloat(quantityG) || 0;
+                      setTotalPrice((uNum * qNum).toFixed(2));
+                    }
+                  }}
+                  placeholder="Ej: 50"
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-white font-mono"
+                />
+              </div>
 
-          <div>
-            <label className="block text-xs font-medium text-zinc-300 mb-1">{t.sales.totalPrice}</label>
-            <p className="text-[11px] text-zinc-500 mb-1.5">Monto total pagado en esta venta.</p>
-            <input
-              type="number"
-              step="0.01"
-              required
-              value={totalPrice}
-              onChange={(e) => setTotalPrice(e.target.value)}
-              placeholder="Ej: 50"
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-emerald-400 font-mono font-bold"
-            />
-          </div>
+              <div>
+                <label className="block text-xs font-medium text-zinc-300 mb-1">{t.sales.totalPrice}</label>
+                <p className="text-[11px] text-zinc-500 mb-1.5">Monto total acordado (editable a cualquier precio).</p>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  required
+                  value={totalPrice}
+                  onChange={(e) => {
+                    const tot = e.target.value;
+                    setTotalPrice(tot);
+                    const totNum = parseFloat(tot) || 0;
+                    if (mode === 'bulk') {
+                      const qNum = parseFloat(quantityG) || 0;
+                      if (qNum > 0) setUnitPrice((totNum / qNum).toFixed(2));
+                    }
+                  }}
+                  placeholder="Ej: 270"
+                  className="w-full bg-zinc-950 border border-emerald-500/40 rounded-xl px-3 py-2.5 text-sm text-emerald-400 font-mono font-bold"
+                />
+              </div>
         </div>
 
         <div>
